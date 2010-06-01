@@ -27,12 +27,20 @@ object MetadataEditor extends SimpleSwingApplication {
     val controls: List[editor] = types.map(a => editor(a._1, a._2("getter")(m)))
     new FlowPanel(controls: _*)
   }
-  def getVCardGivenName(mod: Model, vcard: Resource): String = {
-    vcard.getProperty(mod.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#N")).getProperty(mod.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Given")).getString()
+  def getVCardGivenName(mod: Model, vcard: {def getProperty(a: Property): Statement}): String = {
+    vcard.getProperty(mod.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#N"))
+      .getProperty(mod.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Given"))
+        .getString()
   }
   val types = List("Author" -> Map("getter" -> ((mod: Model) => {
     val x = mod.getResource("").getProperty(mod.createProperty("http://purl.org/dc/elements/1.1/#creator"))
-    getVCardGivenName(mod, x.getBag().iterator().nextNode().as(classOf[com.hp.hpl.jena.rdf.model.Resource]) )
+    var y: String = ""
+    try {
+      y = getVCardGivenName(mod, x.getBag().iterator.nextNode().as(classOf[com.hp.hpl.jena.rdf.model.Resource]))
+    } catch {
+      case (e:NullPointerException) => y = getVCardGivenName(mod, x)
+    }
+    y
   })),
     "Citation" -> Map("getter" -> ((mod: Model) => "foo")), "Change History" ->  Map("getter" -> ((mod: Model) => "roo")))
   def top = new MainFrame {
