@@ -17,7 +17,7 @@ object MetadataEditor extends SimpleSwingApplication {
     var arp = m.getReader()
     arp.setProperty("embedding", true)
     var cmetans = "http://www.cellml.org/metadata/1.0"
-    arp.read(m, fis, cmetans)
+    arp.read(m, fis, "")
     //m.createResource("").addProperty(m.createProperty("http://foo.com/a#P"), "fhsdhflwhdlfhwsdfhwdj")
     //var arw = m.getWriter("RDF/XML-ABBREV")
     //arw.setProperty("relativeURIs", "same-document, absolute, relative, parent")
@@ -33,12 +33,12 @@ object MetadataEditor extends SimpleSwingApplication {
         .getString()
   }
   val types = List("Author" -> Map("getter" -> ((mod: Model) => {
-    val x = mod.getResource("").getProperty(mod.createProperty("http://purl.org/dc/elements/1.1/#creator"))
+    val x = mod.getResource("").getProperty(mod.createProperty("http://purl.org/dc/elements/1.1/creator"))
     var y: String = ""
     try {
       y = getVCardGivenName(mod, x.getBag().iterator.nextNode().as(classOf[com.hp.hpl.jena.rdf.model.Resource]))
     } catch {
-      case (e:NullPointerException) => y = getVCardGivenName(mod, x)
+      case (e:java.util.NoSuchElementException) => y = getVCardGivenName(mod, x)
     }
     y
   })),
