@@ -52,10 +52,6 @@ object MetadataEditor extends SimpleSwingApplication {
     arp.setProperty("embedding", true)
     var cmetans = "http://www.cellml.org/metadata/1.0"
     arp.read(m, fis, "")
-    //m.createResource("").addProperty(m.createProperty("http://foo.com/a#P"), "fhsdhflwhdlfhwsdfhwdj")
-    //var arw = m.getWriter("RDF/XML-ABBREV")
-    //arw.setProperty("relativeURIs", "same-document, absolute, relative, parent")
-    //arw.write(m, System.out, cmetans)
     val aboutModel = m.getResource("")
     val vcn = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#N")
     val vcg = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Given")
@@ -72,25 +68,7 @@ object MetadataEditor extends SimpleSwingApplication {
       arw.setProperty("allowBadURIs", "true")
       arw.write(m, System.out, "")
     })
-    //val controls: List[editor] = types.map(a => editor(a._1, a._2("getter")(m)))
-    //new FlowPanel(controls: _*)
   }
-  def getVCardGivenName(mod: Model, vcard: {def getProperty(a: Property): Statement}): String = {
-    vcard.getProperty(mod.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#N"))
-      .getProperty(mod.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Given"))
-        .getString()
-  }
-  val types = List("Author" -> Map("getter" -> ((mod: Model) => {
-    val x = mod.getResource("").getProperty(mod.createProperty("http://purl.org/dc/elements/1.1/creator"))
-    var y: String = ""
-    try {
-      y = getVCardGivenName(mod, x.getBag().iterator.nextNode().as(classOf[com.hp.hpl.jena.rdf.model.Resource]))
-    } catch {
-      case (e:java.util.NoSuchElementException) => y = getVCardGivenName(mod, x)
-    }
-    y
-  })),
-    "Citation" -> Map("getter" -> ((mod: Model) => "foo")), "Change History" ->  Map("getter" -> ((mod: Model) => "roo")))
   def top = new MainFrame {
     title = "Metadata Editor"
     //contents = new FlowPanel(controls: _*)
