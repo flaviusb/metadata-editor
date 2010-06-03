@@ -4,12 +4,37 @@ import scala.swing._
 import scala.swing.event._
 import java.io._
 import com.hp.hpl.jena.rdf.arp._
-import com.hp.hpl.jena.rdf.model._
+import com.hp.hpl.jena.rdf.model.{Model => Model, Alt => Alt, Bag => Bag, Seq => JSeq, Container => JContainer, RDFNode => RDFNode, ModelFactory => ModelFactory, Property => Property, Statement => Statement, Resource => Resource}
 
 object MetadataEditor extends SimpleSwingApplication {
+  implicit def container2seq(thing: JContainer): Seq[RDFNode] = {
+    var f: Seq[RDFNode] = Seq()
+    var iter = thing.iterator
+    while(iter.hasNext)
+      f = f :+ iter.next()
+    f
+  }
+
   case class editor(schema: String, value: String) extends FlowPanel {
     contents += new Label(schema)
     contents += new TextField { text = value }
+  }
+  case class ResourceEditor(root: Resource, predicate: Property) extends FlowPanel {
+    def get: String = root.getProperty(predicate).getString()
+    def set(value: String): Unit = root.addProperty(predicate, value)
+
+    var inneredit = new TextField { text = get }
+    contents += inneredit
+    listenTo(inneredit)
+    reactions += {
+      case EditDone(inneredit) => set(inneredit.text)
+    }
+  }
+  case class BagEditor(root: Bag, builder: Resource => FlowPanel) extends FlowPanel {
+    root.foreach(a => contents += builder(a.as(classOf[com.hp.hpl.jena.rdf.model.Resource])))
+  }
+  case class CompoundEditor(root: Resource, builder: Seq[Resource => FlowPanel]) extends FlowPanel {
+    builder.foreach(a => contents += a(root))
   }
   def editors(file: File): Panel = {
     var fis = new FileInputStream(file)
