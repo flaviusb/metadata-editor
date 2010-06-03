@@ -66,7 +66,12 @@ object MetadataEditor extends SimpleSwingApplication {
         labeledtext("Given Name: ", vcg), labeledtext("Family Name: ", vcf)
       ))
     ))))
-    controls
+    new FlowPanel(controls, Button("Save metadata to file") {
+      var arw = m.getWriter("RDF/XML-ABBREV")
+      arw.setProperty("relativeURIs", "same-document, absolute, relative, parent")
+      arw.setProperty("allowBadURIs", "true")
+      arw.write(m, System.out, "")
+    })
     //val controls: List[editor] = types.map(a => editor(a._1, a._2("getter")(m)))
     //new FlowPanel(controls: _*)
   }
