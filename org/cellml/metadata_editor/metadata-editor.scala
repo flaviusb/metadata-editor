@@ -2,6 +2,7 @@ package org.cellml.metadata_editor
 
 import scala.swing._
 import scala.swing.event._
+import scala.xml.parsing.ConstructingParser
 import java.io._
 import com.hp.hpl.jena.rdf.arp._
 import com.hp.hpl.jena.rdf.model.{Model => Model, Alt => Alt, Bag => Bag, Seq => JSeq, Container => JContainer, RDFNode => RDFNode, ModelFactory => ModelFactory, Property => Property, Statement => Statement, Resource => Resource}
@@ -63,6 +64,16 @@ object MetadataEditor extends SimpleSwingApplication {
       ))
     ))))
     new FlowPanel(controls, Button("Save metadata to file") {
+      def stripRDF(el: Node): Node = 
+        el match {
+          case <rdf>{inner @ _*}</rdf> => new Group(Seq[Node]())
+          case a:Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
+          case b:Node => (b)
+        }
+      
+      val p = ConstructingParser.fromFile(file, true)
+      var d: xml.Document = stripRDF(p.document)
+      
       var arw = m.getWriter("RDF/XML-ABBREV")
       arw.setProperty("relativeURIs", "same-document, absolute, relative, parent")
       arw.setProperty("allowBadURIs", "true")
