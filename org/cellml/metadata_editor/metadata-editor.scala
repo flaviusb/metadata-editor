@@ -2,6 +2,7 @@ package org.cellml.metadata_editor
 
 import scala.swing._
 import scala.swing.event._
+import scala.xml._
 import scala.xml.parsing.ConstructingParser
 import java.io._
 import com.hp.hpl.jena.rdf.arp._
