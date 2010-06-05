@@ -92,7 +92,6 @@ object MetadataEditor extends SimpleSwingApplication {
   }
   def top = new MainFrame {
     title = "Metadata Editor"
-    //contents = new FlowPanel(controls: _*)
     contents = Button("Open CellML model") {
       val f = new FileChooser()
       f.showOpenDialog(this.contents(0))
