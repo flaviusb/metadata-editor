@@ -71,14 +71,20 @@ object MetadataEditor extends SimpleSwingApplication {
           case a:Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
           case b:Node => (b)
         }
-      
+      def stripDoc(el: xml.Document): Document = { el.children = el.children.map(stripRDF); el }      
       val p = ConstructingParser.fromFile(file, true)
-      var d: xml.Document = stripRDF(p.document)
+      var d: Document = stripDoc(p.document)
       
       var arw = m.getWriter("RDF/XML-ABBREV")
       arw.setProperty("relativeURIs", "same-document, absolute, relative, parent")
       arw.setProperty("allowBadURIs", "true")
-      arw.write(m, System.out, "")
+      var capture = new StringWriter()
+      capture.write("<fakeroot>");
+      arw.write(m, capture, "")
+      capture.write("</fakeroot>")
+      var xm = XML.loadString(capture.toString())
+      d.children = d.children ++ xm.child 
+      println(d)
     })
   }
   def top = new MainFrame {
