@@ -84,7 +84,10 @@ object MetadataEditor extends SimpleSwingApplication {
       capture.write("</fakeroot>")
       var xm = XML.loadString(capture.toString())
       d.children = d.children ++ xm.child 
-      println(d)
+      val fo = new FileChooser()
+      fo.showSaveDialog(controls)
+      if (fo.selectedFile != null) 
+        XML.save(fo.selectedFile.toString(), d.docElem);
     })
   }
   def top = new MainFrame {
