@@ -10,6 +10,9 @@ import com.hp.hpl.jena.rdf.model.{Model => Model, Alt => Alt, Bag => Bag, Seq =>
 
 object MetadataEditor extends SimpleSwingApplication {
   type propertyable = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
+  type thing = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
+  type thingably = { def apply(root: thing); }
+  type thingable = Component with thingably
   class stmt2prop(stmt: Statement) {
     def getProperty(a: Property): Statement = stmt.getProperty(a)
     def addProperty(a: Property, b: String) = stmt.getResource().addProperty(a, b)
@@ -43,6 +46,9 @@ object MetadataEditor extends SimpleSwingApplication {
   }
   case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends FlowPanel {
     builder.foreach(a => contents += a(root))
+  }
+  case class Interconvertable(root: thing, discriminator: thing => Int, converters: Seq[Seq[thing => thing]], things: Seq[thing => thingable]) extends FlowPanel {
+    def update = { contents.clear(); contents += things(discriminator(root))(root) }
   }
   def labeledtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
     new FlowPanel(new Label(label), ResourceEditor(root, predicate))
