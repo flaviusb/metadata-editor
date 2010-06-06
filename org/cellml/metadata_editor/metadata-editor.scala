@@ -6,7 +6,7 @@ import scala.xml._
 import scala.xml.parsing.ConstructingParser
 import java.io._
 import com.hp.hpl.jena.rdf.arp._
-import com.hp.hpl.jena.rdf.model.{Model => Model, Alt => Alt, Bag => Bag, Seq => JSeq, Container => JContainer, RDFNode => RDFNode, ModelFactory => ModelFactory, Property => Property, Statement => Statement, Resource => Resource}
+import com.hp.hpl.jena.rdf.model.{Model, Alt, Bag, Seq => JSeq, Container => JContainer,RDFNode, ModelFactory, Property, Statement, Resource}
 
 object MetadataEditor extends SimpleSwingApplication {
   type propertyable = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
