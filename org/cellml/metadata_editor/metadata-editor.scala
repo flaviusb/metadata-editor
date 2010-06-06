@@ -6,7 +6,7 @@ import scala.xml._
 import scala.xml.parsing.ConstructingParser
 import java.io._
 import com.hp.hpl.jena.rdf.arp._
-import com.hp.hpl.jena.rdf.model.{Model, Alt, Bag, Seq => JSeq, Container => JContainer,RDFNode, ModelFactory, Property, Statement, Resource}
+import com.hp.hpl.jena.rdf.model.{Model, Alt, Bag, Seq => JSeq, Container => JContainer, RDFNode, ModelFactory, Property, Statement, Resource}
 
 object MetadataEditor extends SimpleSwingApplication {
   type propertyable = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
@@ -16,6 +16,7 @@ object MetadataEditor extends SimpleSwingApplication {
   class stmt2prop(stmt: Statement) {
     def getProperty(a: Property): Statement = stmt.getProperty(a)
     def addProperty(a: Property, b: String) = stmt.getResource().addProperty(a, b)
+    def removeAll(a: Property) = stmt.getResource().removeAll(a)
   }
   type propertyish = { def getProperty(a: Property): Statement }
   implicit def container2seq(thing: JContainer): Seq[RDFNode] = {
@@ -47,8 +48,13 @@ object MetadataEditor extends SimpleSwingApplication {
   case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends FlowPanel {
     builder.foreach(a => contents += a(root))
   }
-  case class Interconvertable(root: thing, discriminator: thing => Int, converters: Seq[Seq[thing => thing]], things: Seq[thing => thingable]) extends FlowPanel {
-    def update = { contents.clear(); contents += things(discriminator(root))(root) }
+  case class Interconvertable(root: thing, discriminator: thing => Int, converters: Seq[Seq[thing => thing]], things: Seq[(String, (thing => thingable))]) extends FlowPanel {
+    val changemenu = new ListView(things.map(_._1))
+    listenTo(changemenu)
+    reactions += {
+      case ListSelectionChanged(changemenu, a, _) => println(a)
+    }
+    def refresh: Unit = { contents.clear(); contents += things(discriminator(root))._2(root) }
   }
   def labeledtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
     new FlowPanel(new Label(label), ResourceEditor(root, predicate))
@@ -62,9 +68,16 @@ object MetadataEditor extends SimpleSwingApplication {
     arp.read(m, fis, "")
     val aboutModel = m.getResource("")
     val vcn = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#N")
+    val vcfn = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#FN")
     val vcg = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Given")
     val vcf = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Family")
     val dcc = m.createProperty("http://purl.org/dc/elements/1.1/creator")
+    def vcfn2vcp(root: propertyable): Unit = {
+      var str = root.getProperty(vcfn).getString()
+      //Seq(root.getProperty(vcg), root.getProperty(vcf), vcn).map(root.removeAll(_))
+      root.removeAll(vcfn)
+      root.addProperty(vcn)
+    }
     val controls = CompoundEditor(aboutModel, Seq(a => CompoundEditor(a.getProperty(dcc), Seq(
       b => CompoundEditor(b.getProperty(vcn), Seq(
         labeledtext("Given Name: ", vcg), labeledtext("Family Name: ", vcf)
