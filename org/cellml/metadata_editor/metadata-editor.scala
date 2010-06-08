@@ -77,7 +77,21 @@ object MetadataEditor extends SimpleSwingApplication {
       var str = root.getProperty(vcfn).getString()
       //Seq(root.getProperty(vcg), root.getProperty(vcf), vcn).map(root.removeAll(_))
       root.removeAll(vcfn)
-      root.addProperty(vcn)
+      var intermediate = m.createResource()
+      root.addProperty(vcn, intermediate)
+      //val ss = str.split("""\s+""")
+      //val (first, last) = (ss(0), (1 to ss.length).toList :/ +)
+      val Rx = """(\w+) (.*)""".r
+      str match {
+        case Rx(first, last) => {
+          intermediate.addProperty(vcg, first)
+          intermediate.addProperty(vcf, last)
+        }
+        case _ => {
+          intermediate.addProperty(vcg, str)
+          intermediate.addProperty(vcf, "")
+        }
+      }
     }
     val controls = CompoundEditor(aboutModel, Seq(a => CompoundEditor(a.getProperty(dcc), Seq(
       b => CompoundEditor(b.getProperty(vcn), Seq(
