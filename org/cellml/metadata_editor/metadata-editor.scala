@@ -72,6 +72,7 @@ object MetadataEditor extends SimpleSwingApplication {
     val vcfn = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#FN")
     val vcg = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Given")
     val vcf = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Family")
+    val vco = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Other")
     val dcc = m.createProperty("http://purl.org/dc/elements/1.1/creator")
     def vcfn2vcp(root: propertyable): Unit = {
       var str = root.getProperty(vcfn).getString()
@@ -81,9 +82,15 @@ object MetadataEditor extends SimpleSwingApplication {
       root.addProperty(vcn, intermediate)
       //val ss = str.split("""\s+""")
       //val (first, last) = (ss(0), (1 to ss.length).toList :/ +)
-      val Rx = """(\w+) (.*)""".r
+      val fml = """(.*) (.*) (.*)""".r
+      val fl = """(.*) (.*)""".r
       str match {
-        case Rx(first, last) => {
+        case fml(first, other, last) => {
+          intermediate.addProperty(vcg, first)
+          intermediate.addProperty(vco, other)
+          intermediate.addProperty(vcf, last)
+        }
+        case fl(first, last) => {
           intermediate.addProperty(vcg, first)
           intermediate.addProperty(vcf, last)
         }
@@ -95,7 +102,7 @@ object MetadataEditor extends SimpleSwingApplication {
     }
     val controls = CompoundEditor(aboutModel, Seq(a => CompoundEditor(a.getProperty(dcc), Seq(
       b => CompoundEditor(b.getProperty(vcn), Seq(
-        labeledtext("Given Name: ", vcg), labeledtext("Family Name: ", vcf)
+        labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
       ))
     ))))
     new FlowPanel(controls, Button("Save metadata to file") {
@@ -103,6 +110,7 @@ object MetadataEditor extends SimpleSwingApplication {
         el match {
           case <rdf>{inner @ _*}</rdf> => new Text("")
           case <RDF>{inner @ _*}</RDF> => new Text("")
+          case a: Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
           case a:Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
           case b:Node => (b)
         }
