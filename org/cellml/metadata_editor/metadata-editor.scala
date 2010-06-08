@@ -16,9 +16,7 @@ object MetadataEditor extends SimpleSwingApplication {
     def hasProperty(a: Property): Boolean
     def removeAll(a: Property): Resource
   }
-  type thing = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
-  type thingably = { def apply(root: thing); }
-  type thingable = Component with thingably
+  type thingable = Component with propertyable
   class stmt2prop(stmt: Statement) {
     def getProperty(a: Property): Statement = stmt.getProperty(a)
     def addProperty(a: Property, b: String) = stmt.getResource().addProperty(a, b)
@@ -56,13 +54,18 @@ object MetadataEditor extends SimpleSwingApplication {
   case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends FlowPanel {
     builder.foreach(a => contents += a(root))
   }
-  case class Interconvertable(root: thing, discriminator: thing => Int, converters: Seq[Seq[thing => thing]], things: Seq[(String, (thing => thingable))]) extends FlowPanel {
+  case class Interconvertable(root: propertyable, discriminator: propertyable => Int, converters: Seq[Seq[propertyable => Unit]], things: Seq[(String, (propertyable => FlowPanel))]) extends FlowPanel {
     val changemenu = new ListView(things.map(_._1))
-    listenTo(changemenu)
+    listenTo(changemenu.selection)
     reactions += {
-      case ListSelectionChanged(changemenu, a, _) => println(a)
+      case ListSelectionChanged(changemenu, a, _) => {
+        contents.clear()
+        converters(discriminator(root))(changemenu.selection.indices.toSeq(0))(root)
+        refresh
+      }
     }
-    def refresh: Unit = { contents.clear(); contents += things(discriminator(root))._2(root) }
+    def refresh: Unit = { contents.clear(); contents += things(discriminator(root))._2(root); contents += changemenu; }
+    refresh
   }
   def labeledtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
     new FlowPanel(new Label(label), ResourceEditor(root, predicate))
@@ -115,14 +118,18 @@ object MetadataEditor extends SimpleSwingApplication {
       root.addProperty(vcfn, str)
     }
     def vcfnorn(root: propertyable): Int = {
-      if (root.hasProperty(vcfn)) 0
-      else 1
+      if (root.hasProperty(vcfn)) 1
+      else 0
     }
-    val controls = CompoundEditor(aboutModel, Seq(a => CompoundEditor(a.getProperty(dcc), Seq(
+    val controls = CompoundEditor(aboutModel, Seq(a => Interconvertable(a.getProperty(dcc), vcfnorn, Seq(Seq((_) => Unit, vcp2vcfn _), Seq(vcp2vcfn _, (_) => Unit)),
+      Seq(("vcard:N",
       b => CompoundEditor(b.getProperty(vcn), Seq(
         labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
+      ))),
+      ("vcard:FN",
+        labeledtext("Full Name: ", vcfn)
       ))
-    ))))
+    )))
     new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
         el match {
