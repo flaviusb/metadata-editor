@@ -9,7 +9,13 @@ import com.hp.hpl.jena.rdf.arp._
 import com.hp.hpl.jena.rdf.model.{Model, Alt, Bag, Seq => JSeq, Container => JContainer, RDFNode, ModelFactory, Property, Statement, Resource}
 
 object MetadataEditor extends SimpleSwingApplication {
-  type propertyable = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource; def addProperty(a: Property, b: RDFNode): Resource; def removeAll(a: Property): Resource }
+  type propertyable = {
+    def getProperty(a: Property): Statement
+    def addProperty(a: Property, b: String): Resource
+    def addProperty(a: Property, b: RDFNode): Resource
+    def hasProperty(a: Property): Boolean
+    def removeAll(a: Property): Resource
+  }
   type thing = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
   type thingably = { def apply(root: thing); }
   type thingable = Component with thingably
@@ -17,6 +23,7 @@ object MetadataEditor extends SimpleSwingApplication {
     def getProperty(a: Property): Statement = stmt.getProperty(a)
     def addProperty(a: Property, b: String) = stmt.getResource().addProperty(a, b)
     def addProperty(a: Property, b: RDFNode) = stmt.getResource().addProperty(a, b)
+    def hasProperty(a: Property) = stmt.getResource().hasProperty(a)
     def removeAll(a: Property) = stmt.getResource().removeAll(a)
   }
   type propertyish = { def getProperty(a: Property): Statement }
@@ -106,6 +113,10 @@ object MetadataEditor extends SimpleSwingApplication {
       Seq(vcg, vco, vcf).map(root.getProperty(vcn).removeAll(_))
       root.removeAll(vcn)
       root.addProperty(vcfn, str)
+    }
+    def vcfnorn(root: propertyable): Int = {
+      if (root.hasProperty(vcfn)) 0
+      else 1
     }
     val controls = CompoundEditor(aboutModel, Seq(a => CompoundEditor(a.getProperty(dcc), Seq(
       b => CompoundEditor(b.getProperty(vcn), Seq(
