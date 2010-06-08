@@ -106,7 +106,6 @@ object MetadataEditor extends SimpleSwingApplication {
           case a:Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
           case b:Node => (b)
         }
-      def stripDoc(el: xml.Document): Document = { el.children = el.children.map(stripRDF); el }      
       val p = ConstructingParser.fromFile(file, true)
       var d: Node = stripRDF(p.document.docElem)
       
