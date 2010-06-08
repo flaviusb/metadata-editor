@@ -101,13 +101,14 @@ object MetadataEditor extends SimpleSwingApplication {
     new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
         el match {
-          case <rdf>{inner @ _*}</rdf> => new Group(Seq[Node]())
+          case <rdf>{inner @ _*}</rdf> => new Text("")
+          case <RDF>{inner @ _*}</RDF> => new Text("")
           case a:Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
           case b:Node => (b)
         }
       def stripDoc(el: xml.Document): Document = { el.children = el.children.map(stripRDF); el }      
       val p = ConstructingParser.fromFile(file, true)
-      var d: Document = stripDoc(p.document)
+      var d: Node = stripRDF(p.document.docElem)
       
       var arw = m.getWriter("RDF/XML-ABBREV")
       arw.setProperty("relativeURIs", "same-document, absolute, relative, parent")
@@ -117,11 +118,11 @@ object MetadataEditor extends SimpleSwingApplication {
       arw.write(m, capture, "")
       capture.write("</fakeroot>")
       var xm = XML.loadString(capture.toString())
-      d.children = d.children ++ xm.child 
+      val finaldoc = new Elem(d.prefix, d.label, d.attributes, d.scope, (d.child ++ xm.child): _*) 
       val fo = new FileChooser()
       fo.showSaveDialog(controls)
       if (fo.selectedFile != null) 
-        XML.save(fo.selectedFile.toString(), d.docElem);
+        XML.save(fo.selectedFile.toString(), finaldoc);
     })
   }
   def top = new MainFrame {
