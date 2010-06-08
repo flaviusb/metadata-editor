@@ -9,13 +9,14 @@ import com.hp.hpl.jena.rdf.arp._
 import com.hp.hpl.jena.rdf.model.{Model, Alt, Bag, Seq => JSeq, Container => JContainer, RDFNode, ModelFactory, Property, Statement, Resource}
 
 object MetadataEditor extends SimpleSwingApplication {
-  type propertyable = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
+  type propertyable = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource; def addProperty(a: Property, b: RDFNode): Resource; def removeAll(a: Property): Resource }
   type thing = { def getProperty(a: Property): Statement; def addProperty(a: Property, b: String): Resource }
   type thingably = { def apply(root: thing); }
   type thingable = Component with thingably
   class stmt2prop(stmt: Statement) {
     def getProperty(a: Property): Statement = stmt.getProperty(a)
     def addProperty(a: Property, b: String) = stmt.getResource().addProperty(a, b)
+    def addProperty(a: Property, b: RDFNode) = stmt.getResource().addProperty(a, b)
     def removeAll(a: Property) = stmt.getResource().removeAll(a)
   }
   type propertyish = { def getProperty(a: Property): Statement }
