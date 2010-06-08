@@ -100,6 +100,13 @@ object MetadataEditor extends SimpleSwingApplication {
         }
       }
     }
+    def vcp2vcfn(root: propertyable): Unit = {
+      var str = root.getProperty(vcn).getProperty(vcg).getString() + " " +
+        root.getProperty(vcn).getProperty(vco).getString() + " " + root.getProperty(vcn).getProperty(vcf).getString()
+      Seq(vcg, vco, vcf).map(root.getProperty(vcn).removeAll(_))
+      root.removeAll(vcn)
+      root.addProperty(vcfn, str)
+    }
     val controls = CompoundEditor(aboutModel, Seq(a => CompoundEditor(a.getProperty(dcc), Seq(
       b => CompoundEditor(b.getProperty(vcn), Seq(
         labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
@@ -108,11 +115,11 @@ object MetadataEditor extends SimpleSwingApplication {
     new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
         el match {
+          case b: Text => (b)
           case <rdf>{inner @ _*}</rdf> => new Text("")
           case <RDF>{inner @ _*}</RDF> => new Text("")
           case a: Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
-          case a:Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
-          case b:Node => (b)
+          case b: Node => (b)
         }
       val p = ConstructingParser.fromFile(file, true)
       var d: Node = stripRDF(p.document.docElem)
