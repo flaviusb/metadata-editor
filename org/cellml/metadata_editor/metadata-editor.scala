@@ -96,8 +96,8 @@ object MetadataEditor extends SimpleSwingApplication {
       root.addProperty(vcn, intermediate)
       //val ss = str.split("""\s+""")
       //val (first, last) = (ss(0), (1 to ss.length).toList :/ +)
-      val fml = """(.*) (.*) (.*)""".r
-      val fl = """(.*) (.*)""".r
+      val fml = """([^ ]*) (.*) (.*)""".r
+      val fl = """([^ ]*) (.*)""".r
       str match {
         case fml(first, other, last) => {
           intermediate.addProperty(vcg, first)
