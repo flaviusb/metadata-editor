@@ -121,7 +121,7 @@ object MetadataEditor extends SimpleSwingApplication {
       if (root.hasProperty(vcfn)) 1
       else 0
     }
-    val controls = CompoundEditor(aboutModel, Seq(a => Interconvertable(a.getProperty(dcc), vcfnorn, Seq(Seq((_) => Unit, vcp2vcfn _), Seq(vcp2vcfn _, (_) => Unit)),
+    val controls = CompoundEditor(aboutModel, Seq(a => Interconvertable(a.getProperty(dcc), vcfnorn, Seq(Seq((_) => Unit, vcp2vcfn _), Seq(vcfn2vcp _, (_) => Unit)),
       Seq(("vcard:N",
       b => CompoundEditor(b.getProperty(vcn), Seq(
         labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
