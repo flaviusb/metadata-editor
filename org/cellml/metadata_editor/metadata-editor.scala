@@ -18,7 +18,11 @@ object MetadataEditor extends SimpleSwingApplication {
   }
   type thingable = Component with propertyable
   class stmt2prop(stmt: Statement) {
-    def getProperty(a: Property): Statement = stmt.getProperty(a)
+    def getProperty(a: Property): Statement = {
+      if (!stmt.hasProperty(a))
+        stmt.addProperty(a, "")
+      stmt.getProperty(a)
+    }
     def addProperty(a: Property, b: String) = stmt.getResource().addProperty(a, b)
     def addProperty(a: Property, b: RDFNode) = stmt.getResource().addProperty(a, b)
     def hasProperty(a: Property) = stmt.getResource().hasProperty(a)
