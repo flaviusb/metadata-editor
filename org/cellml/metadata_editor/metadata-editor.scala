@@ -43,9 +43,9 @@ object MetadataEditor extends SimpleSwingApplication {
   }
   case class ResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
     def get: String = root.getProperty(predicate).getString()
-    def set(value: String): Unit = root.getProperty(predicate).changeObject(value)
+    def set(value: String): Unit = if(showing) root.getProperty(predicate).changeObject(value)
 
-    var inneredit = new TextField { text = get }
+    var inneredit = new TextField(15) { text = get }
     contents += inneredit
     listenTo(inneredit)
     reactions += {
