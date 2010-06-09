@@ -64,11 +64,22 @@ object MetadataEditor extends SimpleSwingApplication {
     reactions += {
       case ListSelectionChanged(changemenu, a, _) => {
         contents.clear()
+        repaint
         converters(discriminator(root))(changemenu.selection.indices.toSeq(0))(root)
         refresh
       }
     }
-    def refresh: Unit = { contents.clear(); contents += things(discriminator(root))._2(root); contents += changemenu; }
+    def refresh: Unit = {
+      contents.clear();
+      val item = discriminator(root)
+      contents += things(item)._2(root)
+      contents += changemenu
+      deafTo(changemenu.selection)
+      changemenu.selectIndices(item)
+      listenTo(changemenu.selection)
+      revalidate
+      repaint
+    }
     refresh
   }
   def labeledtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
