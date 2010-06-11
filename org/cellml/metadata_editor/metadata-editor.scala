@@ -15,18 +15,29 @@ object MetadataEditor extends SimpleSwingApplication {
     def addProperty(a: Property, b: RDFNode): Resource
     def hasProperty(a: Property): Boolean
     def removeAll(a: Property): Resource
+    def canAs[A <: RDFNode](clazz: Class[A]): Boolean
+    def as[A <: RDFNode](clazz: Class[A]): Option[A]
   }
   type thingable = Component with propertyable
-  class stmt2prop(stmt: Statement) {
+  implicit def stmt2saferes(stmt: Statement): propertyable = new safeResWrapper(stmt.getResource())
+  implicit def res2saferes(res: Resource): propertyable = new safeResWrapper(res)
+  class safeResWrapper(proxy: Resource) {
     def getProperty(a: Property): Statement = {
-      if (!stmt.hasProperty(a))
-        stmt.addProperty(a, "")
-      stmt.getProperty(a)
+      if (!proxy.hasProperty(a))
+        proxy.addProperty(a, "")
+      proxy.getProperty(a)
     }
-    def addProperty(a: Property, b: String) = stmt.getResource().addProperty(a, b)
-    def addProperty(a: Property, b: RDFNode) = stmt.getResource().addProperty(a, b)
-    def hasProperty(a: Property) = stmt.getResource().hasProperty(a)
-    def removeAll(a: Property) = stmt.getResource().removeAll(a)
+    def addProperty(a: Property, b: String) = proxy.addProperty(a, b)
+    def addProperty(a: Property, b: RDFNode) = proxy.addProperty(a, b)
+    def hasProperty(a: Property) = proxy.hasProperty(a)
+    def removeAll(a: Property) = proxy.removeAll(a)
+    def canAs[A <: RDFNode](clazz: Class[A]): Boolean = proxy.canAs(clazz)
+    def as[A <: RDFNode](clazz: Class[A]): Option[A] = {
+      if(canAs(clazz))
+        Some(proxy.as(clazz))
+      else
+        None
+    }
   }
   type propertyish = { def getProperty(a: Property): Statement }
   implicit def container2seq(thing: JContainer): Seq[RDFNode] = {
@@ -36,7 +47,6 @@ object MetadataEditor extends SimpleSwingApplication {
       f = f :+ iter.next()
     f
   }
-  implicit def statement2propertyable(stmt: Statement): propertyable = new stmt2prop(stmt)
   case class editor(schema: String, value: String) extends FlowPanel {
     contents += new Label(schema)
     contents += new TextField { text = value }
@@ -101,7 +111,6 @@ object MetadataEditor extends SimpleSwingApplication {
     val dcc = m.createProperty("http://purl.org/dc/elements/1.1/creator")
     def vcfn2vcp(root: propertyable): Unit = {
       var str = root.getProperty(vcfn).getString()
-      //Seq(root.getProperty(vcg), root.getProperty(vcf), vcn).map(root.removeAll(_))
       root.removeAll(vcfn)
       var intermediate = m.createResource()
       root.addProperty(vcn, intermediate)
@@ -131,6 +140,10 @@ object MetadataEditor extends SimpleSwingApplication {
       Seq(vcg, vco, vcf).map(root.getProperty(vcn).removeAll(_))
       root.removeAll(vcn)
       root.addProperty(vcfn, str)
+    }
+    def container2resource(root: propertyable): Unit = {
+      // In this case, we just take the first resource in the container; this becomes *the* resource.
+      root.as(classOf[JContainer])
     }
     def vcfnorn(root: propertyable): Int = {
       if (root.hasProperty(vcfn)) 1
