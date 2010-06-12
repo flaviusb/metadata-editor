@@ -12,17 +12,41 @@ object MetadataEditor extends SimpleSwingApplication {
   trait stringable { def getString(): String }
   trait propertyable extends stringable {
     def getProperty(a: Property): Option[propertyable]
-    def addProperty(a: Property, b: String): propertyable
-    def addProperty(a: Property, b: RDFNode): propertyable
+    def addProperty(a: Property, b: String): Unit 
+    def addProperty(a: Property, b: RDFNode): Unit
     def hasProperty(a: Property): Boolean
-    def removeAll(a: Property): propertyable
+    def removeAll(a: Property): Unit
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean
     def as[A <: RDFNode](clazz: Class[A]): Option[A]
-    def getString(): String
   }
   type thingable = Component with propertyable
-  implicit def stmt2saferes(stmt: Statement): propertyable = new safeResWrapper(stmt.getResource())
-  implicit def res2saferes(res: Resource): propertyable = new safeResWrapper(res)
+  implicit def stmt2saferes(stmt: Statement): propertyable = {
+    if (stmt.getObject().isLiteral())
+      new litResWrapper(stmt.getObject())
+    else
+      new safeResWrapper(stmt.getResource())
+  }
+  implicit def res2prop(res: Resource): propertyable = {
+    if (res.isLiteral())
+      new litResWrapper(res)
+    else
+      new safeResWrapper(res)
+  }
+  class litResWrapper(proxy: RDFNode) extends propertyable {
+    def getProperty(a: Property): Option[propertyable] = None
+    def addProperty(a: Property, b: String) = Unit
+    def addProperty(a: Property, b: RDFNode) = Unit
+    def hasProperty(a: Property) = false
+    def removeAll(a: Property) = Unit
+    def canAs[A <: RDFNode](clazz: Class[A]): Boolean = proxy.canAs(clazz)
+    def as[A <: RDFNode](clazz: Class[A]): Option[A] = {
+      if(canAs(clazz))
+        Some(proxy.as(clazz))
+      else
+        None
+    }
+    def getString(): String = proxy.toString()
+  }
   class safeResWrapper(proxy: Resource) extends propertyable {
     def getProperty(a: Property): Option[propertyable] = {
       if (!proxy.hasProperty(a))
@@ -164,7 +188,11 @@ object MetadataEditor extends SimpleSwingApplication {
       if (root.hasProperty(vcfn)) 1
       else 0
     }
-    def getOrMakeProp(root: propertyable, prop: Property): propertyable = (root.getProperty(dcc) getOrElse root.addProperty(dcc, m.createResource()))
+    def getOrMakeProp(root: propertyable, prop: Property): propertyable = {
+      if (!root.hasProperty(prop))
+        root.addProperty(prop, m.createResource())
+      root.getProperty(prop) getOrElse null
+    }
     val controls = CompoundEditor(aboutModel, Seq(a => Interconvertable(getOrMakeProp(a, dcc), vcfnorn, Seq(Seq((_) => Unit, vcp2vcfn _), Seq(vcfn2vcp _, (_) => Unit)),
       Seq(("vcard:N",
       b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
