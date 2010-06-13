@@ -208,7 +208,7 @@ object MetadataEditor extends SimpleSwingApplication {
           case b: Text => (b)
           case <rdf>{inner @ _*}</rdf> => new Text("")
           case <RDF>{inner @ _*}</RDF> => new Text("")
-          case a: Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.descendant.map(stripRDF) : _*))
+          case a: Elem => (new Elem(a.prefix, a.label, a.attributes, a.scope, a.child.map(stripRDF) : _*))
           case b: Node => (b)
         }
       val p = ConstructingParser.fromFile(file, true)
