@@ -72,6 +72,7 @@ object MetadataEditor extends SimpleSwingApplication {
     var iter = thing.iterator
     while(iter.hasNext)
       f = f :+ iter.next()
+    iter.close()
     f
   }
   case class editor(schema: String, value: String) extends FlowPanel {
@@ -96,8 +97,9 @@ object MetadataEditor extends SimpleSwingApplication {
       case EditDone(inneredit) => set(inneredit.text)
     }
   }
-  case class BagEditor(root: Bag, builder: propertyable => FlowPanel) extends FlowPanel {
-    root.foreach(a => contents += builder(a.as(classOf[com.hp.hpl.jena.rdf.model.Resource])))
+  case class ContEditor[A <: JContainer](root: A, builder: propertyable => FlowPanel) extends FlowPanel {
+    def rebuild = root.foreach(a => contents += builder(a.as(classOf[com.hp.hpl.jena.rdf.model.Resource])))
+    rebuild
   }
   case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends FlowPanel {
     builder.foreach(a => contents += a(root))
@@ -180,10 +182,6 @@ object MetadataEditor extends SimpleSwingApplication {
       root.removeAll(vcn)
       root.addProperty(vcfn, str)
     }
-    def container2resource(root: propertyable): Unit = {
-      // In this case, we just take the first resource in the container; this becomes *the* resource.
-      root.as(classOf[JContainer])
-    }
     def vcfnorn(root: propertyable): Int = {
       if (root.hasProperty(vcfn)) 1
       else 0
@@ -193,15 +191,87 @@ object MetadataEditor extends SimpleSwingApplication {
         root.addProperty(prop, m.createResource())
       root.getProperty(prop) getOrElse null
     }
-    val controls = CompoundEditor(aboutModel, Seq(a => Interconvertable(getOrMakeProp(a, dcc), vcfnorn, Seq(Seq((_) => Unit, vcp2vcfn _), Seq(vcfn2vcp _, (_) => Unit)),
-      Seq(("vcard:N",
-      b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
-        labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
-      ))),
-      ("vcard:FN",
-        labeledtext("Full Name: ", vcfn)
+    def container2resource(prop: Property)(root: propertyable): Unit = {
+      // In this case, we just take the first resource in the container; this becomes *the* resource.
+      val nv = getOrMakeProp(root, prop).as(classOf[JContainer]).iterator.next()
+      root.removeAll(prop)
+      root.addProperty(prop, nv)
+    }
+    def resource2container(builder: Unit => JContainer)(prop: Property)(root: propertyable): Unit = {
+      val nv = getOrMakeProp(root, prop)
+      root.removeAll(prop)
+      val cont: JContainer = builder()
+      cont.add(nv)
+      root.addProperty(prop, cont)
+    }
+    def seqm = resource2container(Unit => m.createSeq()) _
+    def altm = resource2container(Unit => m.createAlt()) _
+    def bagm = resource2container(Unit => m.createBag()) _
+    //val (seqm, bagm, altm) = Seq((Unit) => m.createSeq(), (Unit) => m.createBag(), (Unit) => m.createAlt()).map(resource2container(_)_) 
+    def container2container(builder: Unit => JContainer)(prop: Property)(root: propertyable): Unit = {
+      val nv: Seq[RDFNode] = getOrMakeProp(root, prop).as(classOf[JContainer]) getOrElse null
+      root.removeAll(prop)
+      val cont: JContainer = builder()
+      nv.foreach(cont.add(_))
+      root.addProperty(prop, cont)
+    }
+    //val a: Seq[Property => propertyable => Unit] = Seq(Unit => m.createSeq, Unit => m.createBag, Unit => m.createAlt).map(container2container)
+    def toSeq = container2container(Unit => m.createSeq()) _
+    def toAlt = container2container(Unit => m.createAlt()) _
+    def toBag = container2container(Unit => m.createBag()) _
+
+    def bagseqaltorres(prop: Property)(root: propertyable): Int = {
+      val r = getOrMakeProp(root, prop)
+      if (r.canAs[Bag](classOf[Bag])) 0
+      else if (r.canAs[JSeq](classOf[JSeq])) 1
+      else if (r.canAs[Alt](classOf[Alt])) 2
+      else 3
+    }
+    def nop(a: propertyable) = Unit
+    val controls = CompoundEditor(aboutModel, Seq(      
+      a => Interconvertable(a, bagseqaltorres(dcc), Seq(
+        Seq(nop, toBag(dcc), toAlt(dcc), container2resource(dcc)),
+        Seq(toSeq(dcc), nop, toAlt(dcc), container2resource(dcc)),
+        Seq(toSeq(dcc), toBag(dcc), nop, container2resource(dcc)),
+        Seq(toSeq(dcc), toBag(dcc), toAlt(dcc), nop)),
+      Seq(("Seq",
+        z => ContEditor[JSeq](z.as(classOf[JSeq]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+          Seq(("vcard:N",
+          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
+            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
+          ))),
+          ("vcard:FN",
+            labeledtext("Full Name: ", vcfn)
+          ))))),
+("Bag",
+        z => ContEditor[Bag](z.as(classOf[Bag]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+          Seq(("vcard:N",
+          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
+            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
+          ))),
+          ("vcard:FN",
+            labeledtext("Full Name: ", vcfn)
+          ))))),
+("Alt",
+        z => ContEditor[Alt](z.as(classOf[Alt]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+          Seq(("vcard:N",
+          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
+            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
+          ))),
+          ("vcard:FN",
+            labeledtext("Full Name: ", vcfn)
+          ))))),
+("Single",
+        z => Interconvertable(z , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+          Seq(("vcard:N",
+          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
+            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
+          ))),
+          ("vcard:FN",
+            labeledtext("Full Name: ", vcfn)
+          ))))
       ))
-    )))
+    ))
     new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
         el match {
