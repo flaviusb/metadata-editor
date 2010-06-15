@@ -197,19 +197,51 @@ object MetadataEditor extends SimpleSwingApplication {
       root.removeAll(prop)
       root.addProperty(prop, nv)
     }
-    def resource2container(builder: Unit => JContainer)(prop: Property)(root: propertyable): Unit = {
+    def resource2container[T <: JContainer](builder: Unit => T)(prop: Property)(root: propertyable): Unit = {
       val nv = getOrMakeProp(root, prop)
-      root.removeAll(prop)
-      val cont: JContainer = builder()
+      println(nv.as(classOf[RDFNode]))
+      //root.removeAll(prop)
+      println(nv.as(classOf[RDFNode]))
+      val cont: T = builder()
       cont.add(nv)
       root.addProperty(prop, cont)
+      println(cont.as(classOf[RDFNode]))
     }
-    def seqm = resource2container(Unit => m.createSeq()) _
-    def altm = resource2container(Unit => m.createAlt()) _
-    def bagm = resource2container(Unit => m.createBag()) _
+    def seqm(prop: Property)(root: propertyable): Unit =  {
+      var nv = getOrMakeProp(root, prop)
+      println(nv.as(classOf[RDFNode]))
+      root.removeAll(prop)
+      var cont: JSeq = m.createSeq()
+      root.addProperty(prop, cont.as(classOf[RDFNode]))
+      cont.add(nv.as(classOf[RDFNode]) getOrElse null)
+      println(cont.as(classOf[RDFNode]))
+    }
+    def altm(prop: Property)(root: propertyable): Unit =  {
+      var nv = getOrMakeProp(root, prop)
+      println(nv.as(classOf[RDFNode]))
+      root.removeAll(prop)
+      var cont: JSeq = m.createSeq()
+      root.addProperty(prop, cont.as(classOf[RDFNode]))
+      cont.add(nv.as(classOf[RDFNode]) getOrElse null)
+      println(cont.as(classOf[RDFNode]))
+    }
+    def bagm(prop: Property)(root: propertyable): Unit =  {
+      var nv = getOrMakeProp(root, prop)
+      println(nv.as(classOf[RDFNode]))
+      root.removeAll(prop)
+      var cont: JSeq = m.createSeq()
+      root.addProperty(prop, cont.as(classOf[RDFNode]))
+      cont.add(nv.as(classOf[RDFNode]) getOrElse null)
+      println(cont.as(classOf[RDFNode]))
+    }
+
+    //def altm = resource2container(Unit => m.createAlt()) _
+    //def bagm = resource2container(Unit => m.createBag()) _
     //val (seqm, bagm, altm) = Seq((Unit) => m.createSeq(), (Unit) => m.createBag(), (Unit) => m.createAlt()).map(resource2container(_)_) 
     def container2container(builder: Unit => JContainer)(prop: Property)(root: propertyable): Unit = {
-      val nv: Seq[RDFNode] = getOrMakeProp(root, prop).as(classOf[JContainer]) getOrElse null
+      val te = getOrMakeProp(root, prop)
+      println(te.as(classOf[RDFNode]) getOrElse "")
+      val nv: Seq[RDFNode] = te.as(classOf[JSeq]) getOrElse null
       root.removeAll(prop)
       val cont: JContainer = builder()
       nv.foreach(cont.add(_))
