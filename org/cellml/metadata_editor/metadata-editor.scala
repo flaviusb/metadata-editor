@@ -279,7 +279,7 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))))),
        ("Bag",
-        z => ContEditor[Bag](z.as(classOf[Bag]) getOrElse null, e => Interconvertable(getOrMakeProp(e, dcc) , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[Bag](getOrMakeProp(z, dcc).as(classOf[Bag]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
@@ -288,7 +288,7 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))))),
        ("Alt",
-        z => ContEditor[Alt](z.as(classOf[Alt]) getOrElse null, e => Interconvertable(getOrMakeProp(e, dcc) , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[Alt](getOrMakeProp(z, dcc).as(classOf[Alt]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
