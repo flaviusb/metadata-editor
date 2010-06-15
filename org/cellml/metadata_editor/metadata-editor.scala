@@ -268,7 +268,7 @@ object MetadataEditor extends SimpleSwingApplication {
         Seq(nop, toBag(dcc), toAlt(dcc), container2resource(dcc)),
         Seq(toSeq(dcc), nop, toAlt(dcc), container2resource(dcc)),
         Seq(toSeq(dcc), toBag(dcc), nop, container2resource(dcc)),
-        Seq(toSeq(dcc), toBag(dcc), toAlt(dcc), nop)),
+        Seq(seqm(dcc), bagm(dcc), altm(dcc), nop _)),
       Seq(("Seq",
         z => ContEditor[JSeq](z.as(classOf[JSeq]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
