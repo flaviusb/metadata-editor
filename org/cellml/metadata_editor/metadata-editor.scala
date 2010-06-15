@@ -254,10 +254,13 @@ object MetadataEditor extends SimpleSwingApplication {
 
     def bagseqaltorres(prop: Property)(root: propertyable): Int = {
       val r = getOrMakeProp(root, prop)
-      if (r.canAs[Bag](classOf[Bag])) 0
-      else if (r.canAs[JSeq](classOf[JSeq])) 1
-      else if (r.canAs[Alt](classOf[Alt])) 2
-      else 3
+      val v = Seq((classOf[JSeq], "isSeq"), (classOf[Bag], "isBag"), (classOf[Alt], "isAlt"))
+      val res = (for(i <- List.range(0, 2); cont <- r.as(v(i)._1) if(v(i)._1.getMethod(v(i)._2).invoke(cont).asInstanceOf[java.lang.Boolean].booleanValue))
+        yield i)
+      if (res.length == 0)
+        3
+      else
+        res(0)
     }
     def nop(a: propertyable) = Unit
     val controls = CompoundEditor(aboutModel, Seq(      
