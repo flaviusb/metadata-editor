@@ -40,8 +40,13 @@ object MetadataEditor extends SimpleSwingApplication {
     def removeAll(a: Property) = Unit
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean = proxy.canAs(clazz)
     def as[A <: RDFNode](clazz: Class[A]): Option[A] = {
-      if(canAs(clazz))
-        Some(proxy.as(clazz))
+      if(canAs(clazz)) {
+        try {
+          Some(proxy.as(clazz))
+        } catch {
+          case e => None
+        }
+      }
       else
         None
     }
@@ -60,8 +65,13 @@ object MetadataEditor extends SimpleSwingApplication {
     def removeAll(a: Property) = proxy.removeAll(a)
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean = proxy.canAs(clazz)
     def as[A <: RDFNode](clazz: Class[A]): Option[A] = {
-      if(canAs(clazz))
-        Some(proxy.as(clazz))
+      if(canAs(clazz)) {
+        try {
+          Some(proxy.as(clazz))
+        } catch {
+          case e => None
+        }
+      }
       else
         None
     }
