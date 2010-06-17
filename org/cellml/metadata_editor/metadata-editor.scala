@@ -208,6 +208,27 @@ object MetadataEditor extends SimpleSwingApplication {
       root.removeAll(prop)
       root.addProperty(prop, nv)
     }
+    def seq2resource(prop: Property)(root: propertyable): Unit = {
+      // In this case, we just take the first resource in the container; this becomes *the* resource.
+      val f: Option[JSeq] = getOrMakeProp(root, prop).as(classOf[JSeq])
+      val nv: RDFNode = f.orNull.iterator.next().as(classOf[RDFNode])
+      root.removeAll(prop)
+      root.addProperty(prop, nv)
+    }
+    def bag2resource(prop: Property)(root: propertyable): Unit = {
+      // In this case, we just take the first resource in the container; this becomes *the* resource.
+      val f: Option[Bag] = getOrMakeProp(root, prop).as(classOf[Bag])
+      val nv: RDFNode = f.orNull.iterator.next().as(classOf[RDFNode])
+      root.removeAll(prop)
+      root.addProperty(prop, nv)
+    }
+    def alt2resource(prop: Property)(root: propertyable): Unit = {
+      // In this case, we just take the first resource in the container; this becomes *the* resource.
+      val f: Option[Alt] = getOrMakeProp(root, prop).as(classOf[Alt])
+      val nv: RDFNode = f.orNull.iterator.next().as(classOf[RDFNode])
+      root.removeAll(prop)
+      root.addProperty(prop, nv)
+    }
     def resource2container[T <: JContainer](builder: Unit => T)(prop: Property)(root: propertyable): Unit = {
       val nv = getOrMakeProp(root, prop)
       println(nv.as(classOf[RDFNode]))
@@ -222,7 +243,7 @@ object MetadataEditor extends SimpleSwingApplication {
       var nv = getOrMakeProp(root, prop)
       println(nv.as(classOf[RDFNode]))
       root.removeAll(prop)
-      var cont: JSeq = m.createSeq()
+      var cont = m.createSeq()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
       cont.add(nv.as(classOf[RDFNode]) getOrElse null)
       println(cont.as(classOf[RDFNode]))
@@ -231,7 +252,7 @@ object MetadataEditor extends SimpleSwingApplication {
       var nv = getOrMakeProp(root, prop)
       println(nv.as(classOf[RDFNode]))
       root.removeAll(prop)
-      var cont: JSeq = m.createSeq()
+      var cont = m.createAlt()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
       cont.add(nv.as(classOf[RDFNode]) getOrElse null)
       println(cont.as(classOf[RDFNode]))
@@ -240,7 +261,7 @@ object MetadataEditor extends SimpleSwingApplication {
       var nv = getOrMakeProp(root, prop)
       println(nv.as(classOf[RDFNode]))
       root.removeAll(prop)
-      var cont: JSeq = m.createSeq()
+      var cont = m.createBag()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
       cont.add(nv.as(classOf[RDFNode]) getOrElse null)
       println(cont.as(classOf[RDFNode]))
@@ -249,25 +270,31 @@ object MetadataEditor extends SimpleSwingApplication {
     //def altm = resource2container(Unit => m.createAlt()) _
     //def bagm = resource2container(Unit => m.createBag()) _
     //val (seqm, bagm, altm) = Seq((Unit) => m.createSeq(), (Unit) => m.createBag(), (Unit) => m.createAlt()).map(resource2container(_)_) 
-    def container2container(builder: Unit => JContainer)(prop: Property)(root: propertyable): Unit = {
+    //Manually unroll this, as JVM type erasure means it can't be done with a type parameter
+    def asSeq(root: propertyable) = root.as(classOf[JSeq]) getOrElse null
+    def asBag(root: propertyable) = root.as(classOf[Bag]) getOrElse null
+    def asAlt(root: propertyable) = root.as(classOf[Alt]) getOrElse null
+    def container2container(builder: Unit => JContainer)(from: propertyable => JContainer, prop: Property)(root: propertyable): Unit = {
       val te = getOrMakeProp(root, prop)
       println(te.as(classOf[RDFNode]) getOrElse "")
-      val nv: Seq[RDFNode] = te.as(classOf[JSeq]) getOrElse null
+      val nv: Seq[RDFNode] = from(te)
       root.removeAll(prop)
       val cont: JContainer = builder()
       nv.foreach(cont.add(_))
       root.addProperty(prop, cont)
     }
     //val a: Seq[Property => propertyable => Unit] = Seq(Unit => m.createSeq, Unit => m.createBag, Unit => m.createAlt).map(container2container)
+    val placeholders = (asSeq _, asBag _, asAlt _)
     def toSeq = container2container(Unit => m.createSeq()) _
-    def toAlt = container2container(Unit => m.createAlt()) _
     def toBag = container2container(Unit => m.createBag()) _
+    def toAlt = container2container(Unit => m.createAlt()) _
 
     def bagseqaltorres(prop: Property)(root: propertyable): Int = {
       val r = getOrMakeProp(root, prop)
       val v = Seq((classOf[JSeq], "isSeq"), (classOf[Bag], "isBag"), (classOf[Alt], "isAlt"))
       val res = (for(i <- List.range(0, 2); cont <- r.as(v(i)._1) if(v(i)._1.getMethod(v(i)._2).invoke(cont).asInstanceOf[java.lang.Boolean].booleanValue))
         yield i)
+      println(res)
       if (res.length == 0)
         3
       else
@@ -276,10 +303,10 @@ object MetadataEditor extends SimpleSwingApplication {
     def nop(a: propertyable) = Unit
     val controls = CompoundEditor(aboutModel, Seq(      
       a => Interconvertable(a, bagseqaltorres(dcc), Seq(
-        Seq(nop, toBag(dcc), toAlt(dcc), container2resource(dcc)),
-        Seq(toSeq(dcc), nop, toAlt(dcc), container2resource(dcc)),
-        Seq(toSeq(dcc), toBag(dcc), nop, container2resource(dcc)),
-        Seq(seqm(dcc), bagm(dcc), altm(dcc), nop _)),
+        Seq(nop, toBag(placeholders._2, dcc), toAlt(placeholders._3, dcc), seq2resource(dcc)),
+        Seq(toSeq(placeholders._1, dcc), nop, toAlt(placeholders._3, dcc), bag2resource(dcc)),
+        Seq(toSeq(placeholders._1, dcc), toBag(placeholders._2, dcc), nop, alt2resource(dcc)),
+        Seq(seqm(dcc), bagm(dcc), altm(dcc), nop)),
       Seq(("Seq",
         z => ContEditor[JSeq](getOrMakeProp(z, dcc).as(classOf[JSeq]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
