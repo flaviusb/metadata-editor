@@ -107,9 +107,10 @@ object MetadataEditor extends SimpleSwingApplication {
       case EditDone(inneredit) => set(inneredit.text)
     }
   }
-  case class ContEditor[A <: JContainer](root: A, builder: propertyable => FlowPanel) extends FlowPanel {
+  case class ContEditor[A <: JContainer](root: A, builder: propertyable => FlowPanel) extends ColumnPanel {
     def rebuild = root.foreach(a => contents += builder(a.as(classOf[com.hp.hpl.jena.rdf.model.Resource])))
     rebuild
+    border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")
   }
   case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends FlowPanel {
     builder.foreach(a => contents += a(root))
@@ -354,3 +355,8 @@ object MetadataEditor extends SimpleSwingApplication {
     } 
   }
 }
+class ColumnPanel extends FlowPanel {
+  override lazy val peer: javax.swing.JPanel = 
+    new javax.swing.JPanel(new java.awt.GridLayout(0, 1)) with SuperMixin
+}
+
