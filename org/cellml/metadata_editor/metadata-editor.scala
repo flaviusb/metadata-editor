@@ -241,29 +241,29 @@ object MetadataEditor extends SimpleSwingApplication {
     }
     def seqm(prop: Property)(root: propertyable): Unit =  {
       var nv = getOrMakeProp(root, prop)
-      println(nv.as(classOf[RDFNode]))
+      println("Seqm: " + nv.as(classOf[RDFNode]))
       root.removeAll(prop)
       var cont = m.createSeq()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
-      cont.add(nv.as(classOf[RDFNode]) getOrElse null)
+      cont.add(nv.as(classOf[RDFNode]) orNull)
       println(cont.as(classOf[RDFNode]))
     }
     def altm(prop: Property)(root: propertyable): Unit =  {
       var nv = getOrMakeProp(root, prop)
-      println(nv.as(classOf[RDFNode]))
+      //println("Altm: " + nv.as(classOf[RDFNode]))
       root.removeAll(prop)
-      var cont = m.createAlt()
-      root.addProperty(prop, cont.as(classOf[RDFNode]))
-      cont.add(nv.as(classOf[RDFNode]) getOrElse null)
-      println(cont.as(classOf[RDFNode]))
+      var cont: Alt = m.createAlt()
+      cont.add(nv.as(classOf[RDFNode]) orNull)
+      root.addProperty(prop, cont)
+      //println(cont.as(classOf[RDFNode]))
     }
     def bagm(prop: Property)(root: propertyable): Unit =  {
       var nv = getOrMakeProp(root, prop)
-      println(nv.as(classOf[RDFNode]))
+      println("Bagm: " + nv.as(classOf[RDFNode]))
       root.removeAll(prop)
       var cont = m.createBag()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
-      cont.add(nv.as(classOf[RDFNode]) getOrElse null)
+      cont.add(nv.as(classOf[RDFNode]) orNull)
       println(cont.as(classOf[RDFNode]))
     }
 
