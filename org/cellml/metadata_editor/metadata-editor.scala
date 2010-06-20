@@ -289,16 +289,26 @@ object MetadataEditor extends SimpleSwingApplication {
     def toBag = container2container(Unit => m.createBag()) _
     def toAlt = container2container(Unit => m.createAlt()) _
 
+    def tryc[T <: RDFNode](r: propertyable, clazz: Class[T], meth: String): Boolean = {
+      var ret = false
+      try {
+        r.as(clazz).foreach((a: RDFNode) => if (clazz.getMethod(meth).invoke(a).asInstanceOf[java.lang.Boolean].booleanValue) ret = true)
+      } catch {
+        case _ => {}
+      }
+      ret
+    }
+
     def bagseqaltorres(prop: Property)(root: propertyable): Int = {
       val r = getOrMakeProp(root, prop)
-      val v = Seq((classOf[JSeq], "isSeq"), (classOf[Bag], "isBag"), (classOf[Alt], "isAlt"))
-      val res = (for(i <- List.range(0, 2); cont <- r.as(v(i)._1) if(v(i)._1.getMethod(v(i)._2).invoke(cont).asInstanceOf[java.lang.Boolean].booleanValue))
-        yield i)
-      println(res)
-      if (res.length == 0)
-        3
-      else
-        res(0)
+      //Manually unroll this to get around Jena's stupid type problems
+      if (tryc(r, classOf[JSeq], "isSeq"))
+        return 0
+      else if (tryc(r, classOf[Bag], "isBag"))
+        return 1
+      else if (tryc(r, classOf[Alt], "isAlt"))
+        return 2
+      return 3
     }
     def nop(a: propertyable) = Unit
     val controls = CompoundEditor(aboutModel, Seq(      
