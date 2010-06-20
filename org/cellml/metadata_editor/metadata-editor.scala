@@ -200,7 +200,7 @@ object MetadataEditor extends SimpleSwingApplication {
     def getOrMakeProp(root: propertyable, prop: Property): propertyable = {
       if (!root.hasProperty(prop))
         root.addProperty(prop, m.createResource())
-      root.getProperty(prop) getOrElse null
+      root.getProperty(prop) orNull
     }
     def container2resource(prop: Property)(root: propertyable): Unit = {
       // In this case, we just take the first resource in the container; this becomes *the* resource.
@@ -271,9 +271,9 @@ object MetadataEditor extends SimpleSwingApplication {
     //def bagm = resource2container(Unit => m.createBag()) _
     //val (seqm, bagm, altm) = Seq((Unit) => m.createSeq(), (Unit) => m.createBag(), (Unit) => m.createAlt()).map(resource2container(_)_) 
     //Manually unroll this, as JVM type erasure means it can't be done with a type parameter
-    def asSeq(root: propertyable) = root.as(classOf[JSeq]) getOrElse null
-    def asBag(root: propertyable) = root.as(classOf[Bag]) getOrElse null
-    def asAlt(root: propertyable) = root.as(classOf[Alt]) getOrElse null
+    def asSeq(root: propertyable) = root.as(classOf[JSeq]) orNull
+    def asBag(root: propertyable) = root.as(classOf[Bag]) orNull
+    def asAlt(root: propertyable) = root.as(classOf[Alt]) orNull
     def container2container(builder: Unit => JContainer)(from: propertyable => JContainer, prop: Property)(root: propertyable): Unit = {
       val te = getOrMakeProp(root, prop)
       println(te.as(classOf[RDFNode]) getOrElse "")
@@ -308,7 +308,7 @@ object MetadataEditor extends SimpleSwingApplication {
         Seq(toSeq(placeholders._1, dcc), toBag(placeholders._2, dcc), nop, alt2resource(dcc)),
         Seq(seqm(dcc), bagm(dcc), altm(dcc), nop)),
       Seq(("Seq",
-        z => ContEditor[JSeq](getOrMakeProp(z, dcc).as(classOf[JSeq]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[JSeq](getOrMakeProp(z, dcc).as(classOf[JSeq]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
@@ -317,7 +317,7 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))))),
        ("Bag",
-        z => ContEditor[Bag](getOrMakeProp(z, dcc).as(classOf[Bag]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[Bag](getOrMakeProp(z, dcc).as(classOf[Bag]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
@@ -326,7 +326,7 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))))),
        ("Alt",
-        z => ContEditor[Alt](getOrMakeProp(z, dcc).as(classOf[Alt]) getOrElse null, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[Alt](getOrMakeProp(z, dcc).as(classOf[Alt]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
