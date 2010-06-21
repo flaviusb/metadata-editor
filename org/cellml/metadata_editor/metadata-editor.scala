@@ -107,8 +107,22 @@ object MetadataEditor extends SimpleSwingApplication {
       case EditDone(inneredit) => set(inneredit.text)
     }
   }
-  case class ContEditor[A <: JContainer](root: A, builder: propertyable => FlowPanel) extends ColumnPanel {
-    def rebuild = root.foreach(a => contents += builder(a.as(classOf[com.hp.hpl.jena.rdf.model.Resource])))
+  case class ContEditor[A <: JContainer](root: A, builder: propertyable => FlowPanel) extends ColumnPanel(1) {
+    def rebuild: Unit = {
+      contents.clear()
+      root.foreach(a => {
+        contents += new FlowPanel(builder(a.as(classOf[com.hp.hpl.jena.rdf.model.Resource])),
+        Button(" - ") { 
+          // This is used because we can't remove RDFNodes from a JContainer due to Jena brokenness, so we have to regenerate the containers instead
+          val transfer: Seq[RDFNode] = root
+          root.removeProperties()
+          transfer.foreach(b => if (!b.equals(a)) root.add(b))
+          rebuild
+          revalidate
+          repaint
+        })
+      })
+    }
     rebuild
     border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")
   }
