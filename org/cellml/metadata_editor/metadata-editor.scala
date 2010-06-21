@@ -107,7 +107,7 @@ object MetadataEditor extends SimpleSwingApplication {
       case EditDone(inneredit) => set(inneredit.text)
     }
   }
-  case class ContEditor[A <: JContainer](root: A, builder: propertyable => FlowPanel) extends ColumnPanel(1) {
+  case class ContEditor[A <: JContainer](superroot: propertyable, superpred: Property, superbuilder: Unit => A, var root: A, builder: propertyable => FlowPanel) extends ColumnPanel(1) {
     def rebuild: Unit = {
       contents.clear()
       root.foreach(a => {
@@ -115,7 +115,10 @@ object MetadataEditor extends SimpleSwingApplication {
         Button(" - ") { 
           // This is used because we can't remove RDFNodes from a JContainer due to Jena brokenness, so we have to regenerate the containers instead
           val transfer: Seq[RDFNode] = root
-          root.removeProperties()
+          //root.removeProperties()
+          superroot.removeAll(superpred)
+          root = superbuilder()
+          superroot.addProperty(superpred, root)
           transfer.foreach(b => if (!b.equals(a)) root.add(b))
           rebuild
           revalidate
@@ -338,7 +341,7 @@ object MetadataEditor extends SimpleSwingApplication {
         Seq(toSeq(placeholders._1, dcc), toBag(placeholders._2, dcc), nop, alt2resource(dcc)),
         Seq(seqm(dcc), bagm(dcc), altm(dcc), nop)),
       Seq(("Seq",
-        z => ContEditor[JSeq](getOrMakeProp(z, dcc).as(classOf[JSeq]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[JSeq](a, dcc, Unit => m.createSeq(), getOrMakeProp(z, dcc).as(classOf[JSeq]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
@@ -347,7 +350,7 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))))),
        ("Bag",
-        z => ContEditor[Bag](getOrMakeProp(z, dcc).as(classOf[Bag]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[Bag](a, dcc, Unit => m.createBag(), getOrMakeProp(z, dcc).as(classOf[Bag]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
@@ -356,7 +359,7 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))))),
        ("Alt",
-        z => ContEditor[Alt](getOrMakeProp(z, dcc).as(classOf[Alt]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
+        z => ContEditor[Alt](a, dcc, Unit => m.createAlt(), getOrMakeProp(z, dcc).as(classOf[Alt]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
