@@ -392,8 +392,8 @@ object MetadataEditor extends SimpleSwingApplication {
     } 
   }
 }
-class ColumnPanel extends FlowPanel {
+class ColumnPanel(cols: Int) extends FlowPanel {
   override lazy val peer: javax.swing.JPanel = 
-    new javax.swing.JPanel(new java.awt.GridLayout(0, 1)) with SuperMixin
+    new javax.swing.JPanel(new java.awt.GridLayout(0, cols)) with SuperMixin
 }
 
