@@ -122,6 +122,12 @@ object MetadataEditor extends SimpleSwingApplication {
           repaint
         })
       })
+      contents += Button(" + ") { 
+        root.add(root.as(classOf[Resource]).getModel().createResource())
+        rebuild
+        revalidate
+        repaint
+      }
     }
     rebuild
     border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")
