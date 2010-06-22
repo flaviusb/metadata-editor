@@ -333,6 +333,15 @@ object MetadataEditor extends SimpleSwingApplication {
         return 2
       return 3
     }
+    def vcname(root: propertyable): Interconvertable = 
+      Interconvertable(root, vcfnorn, Seq(Seq(nop _, vcp2vcfn _), Seq(vcfn2vcp _, nop _)),
+          Seq(("vcard:N",
+          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
+            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
+          ))),
+          ("vcard:FN",
+            labeledtext("Full Name: ", vcfn)
+          )))
     def nop(a: propertyable) = Unit
     val controls = CompoundEditor(aboutModel, Seq(      
       a => Interconvertable(a, bagseqaltorres(dcc), Seq(
@@ -341,41 +350,13 @@ object MetadataEditor extends SimpleSwingApplication {
         Seq(toSeq(placeholders._1, dcc), toBag(placeholders._2, dcc), nop, alt2resource(dcc)),
         Seq(seqm(dcc), bagm(dcc), altm(dcc), nop)),
       Seq(("Seq",
-        z => ContEditor[JSeq](a, dcc, Unit => m.createSeq(), getOrMakeProp(z, dcc).as(classOf[JSeq]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
-          Seq(("vcard:N",
-          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
-            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
-          ))),
-          ("vcard:FN",
-            labeledtext("Full Name: ", vcfn)
-          ))))),
+        z => ContEditor[JSeq](a, dcc, Unit => m.createSeq(), getOrMakeProp(z, dcc).as(classOf[JSeq]) orNull, e => vcname(e))),
        ("Bag",
-        z => ContEditor[Bag](a, dcc, Unit => m.createBag(), getOrMakeProp(z, dcc).as(classOf[Bag]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
-          Seq(("vcard:N",
-          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
-            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
-          ))),
-          ("vcard:FN",
-            labeledtext("Full Name: ", vcfn)
-          ))))),
+        z => ContEditor[Bag](a, dcc, Unit => m.createBag(), getOrMakeProp(z, dcc).as(classOf[Bag]) orNull, e => vcname(e))),
        ("Alt",
-        z => ContEditor[Alt](a, dcc, Unit => m.createAlt(), getOrMakeProp(z, dcc).as(classOf[Alt]) orNull, e => Interconvertable(e , vcfnorn, Seq(Seq(nop, vcp2vcfn _), Seq(vcfn2vcp _, nop)),
-          Seq(("vcard:N",
-          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
-            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
-          ))),
-          ("vcard:FN",
-            labeledtext("Full Name: ", vcfn)
-          ))))),
+        z => ContEditor[Alt](a, dcc, Unit => m.createAlt(), getOrMakeProp(z, dcc).as(classOf[Alt]) orNull, e => vcname(e))),
        ("Single",
-        z => Interconvertable(getOrMakeProp(z, dcc) , vcfnorn, Seq(Seq(nop _, vcp2vcfn _), Seq(vcfn2vcp _, nop _)),
-          Seq(("vcard:N",
-          b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
-            labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
-          ))),
-          ("vcard:FN",
-            labeledtext("Full Name: ", vcfn)
-          ))))
+        z => vcname(getOrMakeProp(z, dcc)))
       ))
     ))
     new FlowPanel(controls, Button("Save metadata to file") {
