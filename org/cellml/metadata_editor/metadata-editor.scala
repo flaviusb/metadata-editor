@@ -1,6 +1,7 @@
 package org.cellml.metadata_editor
 
 import scala.swing._
+import javax.swing.BoxLayout
 import javax.swing.border._
 import scala.swing.event._
 import scala.xml._
@@ -109,7 +110,7 @@ object MetadataEditor extends SimpleSwingApplication {
     }
   }
   case class ContEditor[A <: JContainer](superroot: propertyable, superpred: Property, superbuilder: Unit => A,
-    var root: A, builder: propertyable => FlowPanel, bborder: Border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")) extends ColumnPanel(1) {
+    var root: A, builder: propertyable => FlowPanel, bborder: Border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")) extends ColumnPanel {
     def rebuild: Unit = {
       contents.clear()
       root.foreach(a => {
@@ -140,7 +141,7 @@ object MetadataEditor extends SimpleSwingApplication {
     builder.foreach(a => contents += a(root))
     border = bborder
   }
-  case class CompoundColumnEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], bborder: Border = new EmptyBorder(0, 0, 0, 0)) extends ColumnPanel(1) {
+  case class CompoundColumnEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], bborder: Border = new EmptyBorder(0, 0, 0, 0)) extends ColumnPanel {
     builder.foreach(a => contents += a(root))
     border = bborder
   }
@@ -418,8 +419,8 @@ object MetadataEditor extends SimpleSwingApplication {
     } 
   }
 }
-class ColumnPanel(cols: Int) extends FlowPanel {
+class ColumnPanel extends FlowPanel {
   override lazy val peer: javax.swing.JPanel = 
-    new javax.swing.JPanel(new java.awt.GridLayout(0, cols)) with SuperMixin
+    new javax.swing.JPanel() with SuperMixin
+  peer.setLayout(new BoxLayout(peer, BoxLayout.Y_AXIS))
 }
-
