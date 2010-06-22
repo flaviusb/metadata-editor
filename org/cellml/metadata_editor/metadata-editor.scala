@@ -167,7 +167,7 @@ object MetadataEditor extends SimpleSwingApplication {
   def labeledtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
     new FlowPanel(new Label(label), ResourceEditor(root, predicate))
   }
-  def editors(file: File): Panel = {
+  def editors(file: File): Component = {
     var fis = new FileInputStream(file)
     var m = ModelFactory.createDefaultModel()
     var arp = m.getReader()
@@ -375,7 +375,7 @@ object MetadataEditor extends SimpleSwingApplication {
     val controls = CompoundEditor(aboutModel, Seq(      
       a => containerwidget(a, dcc, vcard _)
     ))
-    new FlowPanel(controls, Button("Save metadata to file") {
+    new ScrollPane(new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
         el match {
           case b: Text => (b)
@@ -400,7 +400,7 @@ object MetadataEditor extends SimpleSwingApplication {
       fo.showSaveDialog(controls)
       if (fo.selectedFile != null) 
         XML.save(fo.selectedFile.toString(), finaldoc);
-    })
+    }))
   }
   def top = new MainFrame {
     title = "Metadata Editor"
