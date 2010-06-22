@@ -137,6 +137,9 @@ object MetadataEditor extends SimpleSwingApplication {
   case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends FlowPanel {
     builder.foreach(a => contents += a(root))
   }
+  case class CompoundColumnEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends ColumnPanel(1) {
+    builder.foreach(a => contents += a(root))
+  }
   case class Interconvertable(root: propertyable, discriminator: propertyable => Int, converters: Seq[Seq[propertyable => Unit]], things: Seq[(String, (propertyable => FlowPanel))]) extends FlowPanel {
     val changemenu = new ListView(things.map(_._1))
     listenTo(changemenu.selection)
@@ -177,6 +180,11 @@ object MetadataEditor extends SimpleSwingApplication {
     val vcg = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Given")
     val vcf = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Family")
     val vco = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Other")
+    val vcemail = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#EMAIL")
+    val vctel = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#TEL")
+    val vcorg = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#ORG")
+    val vcorgn = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Orgname")
+    val vcorgu = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Orgunit")
     val dcc = m.createProperty("http://purl.org/dc/elements/1.1/creator")
     def vcfn2vcp(root: propertyable): Unit = {
       var str = (root.getProperty(vcfn) getOrElse eph).getString()
@@ -332,15 +340,21 @@ object MetadataEditor extends SimpleSwingApplication {
         return 2
       return 3
     }
-    def vcard(root: propertyable): FlowPanel = 
-      Interconvertable(root, vcfnorn, Seq(Seq(nop _, vcp2vcfn _), Seq(vcfn2vcp _, nop _)),
+    def vcard(root: propertyable): FlowPanel = CompoundColumnEditor(root, Seq( 
+      a => Interconvertable(a, vcfnorn, Seq(Seq(nop _, vcp2vcfn _), Seq(vcfn2vcp _, nop _)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
             labeledtext("Given Name: ", vcg), labeledtext("Other Name: ", vco), labeledtext("Family Name: ", vcf)
           ))),
           ("vcard:FN",
             labeledtext("Full Name: ", vcfn)
-          )))
+          ))),
+      CompoundEditor(_, Seq(
+        labeledtext("Email: ", vcemail), labeledtext("Tel: ", vctel))),
+      a => CompoundEditor(getOrMakeProp(a, vcorg), Seq(
+        labeledtext("Org Name: ", vcorgn), labeledtext("Org Unit: ", vcorgu)))
+      )
+    )
     def nop(a: propertyable) = Unit
     def containerwidget(root: propertyable, pred: Property, builder: propertyable => FlowPanel): Interconvertable =
       Interconvertable(root, bagseqaltorres(pred), Seq(
