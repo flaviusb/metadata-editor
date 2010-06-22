@@ -216,6 +216,7 @@ object MetadataEditor extends SimpleSwingApplication {
     val vcorgu = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Orgunit")
     val dcc = m.createProperty("http://purl.org/dc/elements/1.1/creator")
     val dcco = m.createProperty("http://purl.org/dc/elements/1.1/contributor")
+    val dcpub = m.createProperty("http://purl.org/dc/elements/1.1/publisher")
     val rdfval = m.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#value")
     val rdftype = m.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
     def vcfn2vcp(root: propertyable): Unit = {
@@ -408,7 +409,8 @@ object MetadataEditor extends SimpleSwingApplication {
 
     val controls = CompoundColumnEditor(aboutModel, Seq(      
       a => CompoundEditor(a, Seq(b => containerwidget(b, dcc, vcard _)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Creator")),
-      a => CompoundEditor(a, Seq(b => containerwidget(b, dcco, vcard _)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Contributors"))
+      a => CompoundEditor(a, Seq(b => containerwidget(b, dcco, vcard _)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Contributors")),
+      labeledtext("Publisher: ", dcpub)
     ))
     new ScrollPane(new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
