@@ -18,6 +18,7 @@ object MetadataEditor extends SimpleSwingApplication {
     def addProperty(a: Property, b: RDFNode): Unit
     def hasProperty(a: Property): Boolean
     def removeAll(a: Property): Unit
+    def getModel(): Option[Model]
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean
     def as[A <: RDFNode](clazz: Class[A]): Option[A]
   }
@@ -40,6 +41,7 @@ object MetadataEditor extends SimpleSwingApplication {
     def addProperty(a: Property, b: RDFNode) = Unit
     def hasProperty(a: Property) = false
     def removeAll(a: Property) = Unit
+    def getModel(): Option[Model] = None 
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean = proxy.canAs(clazz)
     def as[A <: RDFNode](clazz: Class[A]): Option[A] = {
       if(canAs(clazz)) {
@@ -65,6 +67,7 @@ object MetadataEditor extends SimpleSwingApplication {
     def addProperty(a: Property, b: RDFNode) = proxy.addProperty(a, b)
     def hasProperty(a: Property) = proxy.hasProperty(a)
     def removeAll(a: Property) = proxy.removeAll(a)
+    def getModel(): Option[Model] = Some(proxy.getModel())
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean = proxy.canAs(clazz)
     def as[A <: RDFNode](clazz: Class[A]): Option[A] = {
       if(canAs(clazz)) {
@@ -103,6 +106,22 @@ object MetadataEditor extends SimpleSwingApplication {
                            else s.getString()
                          }) getOrElse "")
     def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, value) }
+
+    var inneredit = new TextField(15) { text = get }
+    contents += inneredit
+    listenTo(inneredit)
+    reactions += {
+      case EditDone(inneredit) => set(inneredit.text)
+    }
+  }
+  case class URIResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
+    def get: String = ((for(s <- root.getProperty(predicate))
+                         yield {
+                           // This could be either a literal or an URI Resource
+                           if(s.isInstanceOf[safeResWrapper]) s.as(classOf[Resource]).orNull.getURI()
+                           else s.getString()
+                         }) getOrElse "")
+    def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, root.getModel().orNull.createResource(value)) }
 
     var inneredit = new TextField(15) { text = get }
     contents += inneredit
@@ -173,6 +192,9 @@ object MetadataEditor extends SimpleSwingApplication {
   }
   def labeledtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
     new FlowPanel(new Label(label), ResourceEditor(root, predicate))
+  }
+  def labeleduritext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
+    new FlowPanel(new Label(label), URIResourceEditor(root, predicate))
   }
   def editors(file: File): Component = {
     var fis = new FileInputStream(file)
@@ -360,8 +382,8 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))),
       CompoundEditor(_, Seq(
-        c => CompoundEditor(getOrMakeProp(c, vcemail), Seq(labeledtext("Email: ", rdfval), labeledtext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Email details")),
-        c => CompoundEditor(getOrMakeProp(c, vctel), Seq(labeledtext("Number: ", rdfval), labeledtext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Telephone details"))
+        c => CompoundEditor(getOrMakeProp(c, vcemail), Seq(labeledtext("Email: ", rdfval), labeleduritext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Email details")),
+        c => CompoundEditor(getOrMakeProp(c, vctel), Seq(labeledtext("Number: ", rdfval), labeleduritext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Telephone details"))
         )),
       a => CompoundEditor(getOrMakeProp(a, vcorg), Seq(
         labeledtext("Org Name: ", vcorgn), labeledtext("Org Unit: ", vcorgu)))
