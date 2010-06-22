@@ -115,7 +115,6 @@ object MetadataEditor extends SimpleSwingApplication {
         Button(" - ") { 
           // This is used because we can't remove RDFNodes from a JContainer due to Jena brokenness, so we have to regenerate the containers instead
           val transfer: Seq[RDFNode] = root
-          //root.removeProperties()
           superroot.removeAll(superpred)
           root = superbuilder()
           superroot.addProperty(superpred, root)
@@ -333,7 +332,7 @@ object MetadataEditor extends SimpleSwingApplication {
         return 2
       return 3
     }
-    def vcard(root: propertyable): Interconvertable = 
+    def vcard(root: propertyable): FlowPanel = 
       Interconvertable(root, vcfnorn, Seq(Seq(nop _, vcp2vcfn _), Seq(vcfn2vcp _, nop _)),
           Seq(("vcard:N",
           b => CompoundEditor(getOrMakeProp(b, vcn), Seq(
