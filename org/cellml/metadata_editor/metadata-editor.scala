@@ -1,6 +1,7 @@
 package org.cellml.metadata_editor
 
 import scala.swing._
+import javax.swing.border._
 import scala.swing.event._
 import scala.xml._
 import scala.xml.parsing.ConstructingParser
@@ -107,7 +108,8 @@ object MetadataEditor extends SimpleSwingApplication {
       case EditDone(inneredit) => set(inneredit.text)
     }
   }
-  case class ContEditor[A <: JContainer](superroot: propertyable, superpred: Property, superbuilder: Unit => A, var root: A, builder: propertyable => FlowPanel) extends ColumnPanel(1) {
+  case class ContEditor[A <: JContainer](superroot: propertyable, superpred: Property, superbuilder: Unit => A,
+    var root: A, builder: propertyable => FlowPanel, bborder: Border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")) extends ColumnPanel(1) {
     def rebuild: Unit = {
       contents.clear()
       root.foreach(a => {
@@ -132,13 +134,15 @@ object MetadataEditor extends SimpleSwingApplication {
       }
     }
     rebuild
-    border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")
+    border = bborder
   }
-  case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends FlowPanel {
+  case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], bborder: Border = new EmptyBorder(0, 0, 0, 0)) extends FlowPanel {
     builder.foreach(a => contents += a(root))
+    border = bborder
   }
-  case class CompoundColumnEditor(root: propertyable, builder: Seq[propertyable => FlowPanel]) extends ColumnPanel(1) {
+  case class CompoundColumnEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], bborder: Border = new EmptyBorder(0, 0, 0, 0)) extends ColumnPanel(1) {
     builder.foreach(a => contents += a(root))
+    border = bborder
   }
   case class Interconvertable(root: propertyable, discriminator: propertyable => Int, converters: Seq[Seq[propertyable => Unit]], things: Seq[(String, (propertyable => FlowPanel))]) extends FlowPanel {
     val changemenu = new ListView(things.map(_._1))
@@ -186,6 +190,7 @@ object MetadataEditor extends SimpleSwingApplication {
     val vcorgn = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Orgname")
     val vcorgu = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Orgunit")
     val dcc = m.createProperty("http://purl.org/dc/elements/1.1/creator")
+    val dcco = m.createProperty("http://purl.org/dc/elements/1.1/contributor")
     def vcfn2vcp(root: propertyable): Unit = {
       var str = (root.getProperty(vcfn) getOrElse eph).getString()
       root.removeAll(vcfn)
@@ -372,8 +377,9 @@ object MetadataEditor extends SimpleSwingApplication {
         z => builder(getOrMakeProp(z, pred)))
       ))
 
-    val controls = CompoundEditor(aboutModel, Seq(      
-      a => containerwidget(a, dcc, vcard _)
+    val controls = CompoundColumnEditor(aboutModel, Seq(      
+      a => CompoundEditor(a, Seq(b => containerwidget(b, dcc, vcard _)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Creator")),
+      a => CompoundEditor(a, Seq(b => containerwidget(b, dcco, vcard _)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Contributors"))
     ))
     new ScrollPane(new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
