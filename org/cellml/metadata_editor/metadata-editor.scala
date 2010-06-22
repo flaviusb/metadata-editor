@@ -98,7 +98,9 @@ object MetadataEditor extends SimpleSwingApplication {
   case class ResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
     def get: String = ((for(s <- root.getProperty(predicate))
                          yield {
-                           s.getString()
+                           // This could be either a literal or an URI Resource
+                           if(s.isInstanceOf[safeResWrapper]) s.as(classOf[Resource]).orNull.getURI()
+                           else s.getString()
                          }) getOrElse "")
     def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, value) }
 
@@ -192,6 +194,8 @@ object MetadataEditor extends SimpleSwingApplication {
     val vcorgu = m.createProperty("http://www.w3.org/2001/vcard-rdf/3.0#Orgunit")
     val dcc = m.createProperty("http://purl.org/dc/elements/1.1/creator")
     val dcco = m.createProperty("http://purl.org/dc/elements/1.1/contributor")
+    val rdfval = m.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#value")
+    val rdftype = m.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
     def vcfn2vcp(root: propertyable): Unit = {
       var str = (root.getProperty(vcfn) getOrElse eph).getString()
       root.removeAll(vcfn)
@@ -356,7 +360,9 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))),
       CompoundEditor(_, Seq(
-        labeledtext("Email: ", vcemail), labeledtext("Tel: ", vctel))),
+        c => CompoundEditor(getOrMakeProp(c, vcemail), Seq(labeledtext("Email: ", rdfval), labeledtext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Email details")),
+        c => CompoundEditor(getOrMakeProp(c, vctel), Seq(labeledtext("Number: ", rdfval), labeledtext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Telephone details"))
+        )),
       a => CompoundEditor(getOrMakeProp(a, vcorg), Seq(
         labeledtext("Org Name: ", vcorgn), labeledtext("Org Unit: ", vcorgu)))
       )
