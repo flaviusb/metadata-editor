@@ -114,6 +114,22 @@ object MetadataEditor extends SimpleSwingApplication {
       case EditDone(inneredit) => set(inneredit.text)
     }
   }
+  case class BigResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
+    def get: String = ((for(s <- root.getProperty(predicate))
+                         yield {
+                           // This could be either a literal or an URI Resource
+                           if(s.isInstanceOf[safeResWrapper]) s.as(classOf[Resource]).orNull.getURI()
+                           else s.getString()
+                         }) getOrElse "")
+    def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, value) }
+
+    var inneredit = new TextArea(6, 95) { text = get }
+    contents += inneredit
+    listenTo(inneredit)
+    reactions += {
+      case EditDone(inneredit) => set(inneredit.text)
+    }
+  }
   case class URIResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
     def get: String = ((for(s <- root.getProperty(predicate))
                          yield {
@@ -192,6 +208,9 @@ object MetadataEditor extends SimpleSwingApplication {
   }
   def labeledtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
     new FlowPanel(new Label(label), ResourceEditor(root, predicate))
+  }
+  def labeledbigtext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
+    new FlowPanel(new Label(label), BigResourceEditor(root, predicate))
   }
   def labeleduritext(label: String, predicate: Property)(root: propertyable): FlowPanel = {
     new FlowPanel(new Label(label), URIResourceEditor(root, predicate))
@@ -417,6 +436,7 @@ object MetadataEditor extends SimpleSwingApplication {
       labeledtext("Publisher: ", dcpub),
       labeledtext("Rights: ", dcrights),
       a => CompoundEditor(getOrMakeProp(a, dctcreated), Seq(labeledtext("Date created: ", dctdate))),
+      labeledbigtext("Abstract: ", dctabstract)
     ))
     new ScrollPane(new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
