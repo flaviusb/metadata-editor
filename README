@@ -1,3 +1,7 @@
 A simple cellml metadata editor in Scala.
 
 This requires Scala 2.8, and Jena.
+
+The jar can be invoked on the command line, as long as the Scala 2.8 jars, the Jena jars and the metadata-editor jar is on the classpath, with the invocation
+
+java org.cellml.metadata_editor.MetadataEditor
