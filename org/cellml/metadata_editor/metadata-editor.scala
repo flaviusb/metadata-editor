@@ -343,21 +343,24 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           )))
     def nop(a: propertyable) = Unit
-    val controls = CompoundEditor(aboutModel, Seq(      
-      a => Interconvertable(a, bagseqaltorres(dcc), Seq(
-        Seq(nop, toBag(placeholders._2, dcc), toAlt(placeholders._3, dcc), seq2resource(dcc)),
-        Seq(toSeq(placeholders._1, dcc), nop, toAlt(placeholders._3, dcc), bag2resource(dcc)),
-        Seq(toSeq(placeholders._1, dcc), toBag(placeholders._2, dcc), nop, alt2resource(dcc)),
-        Seq(seqm(dcc), bagm(dcc), altm(dcc), nop)),
+    def containerwidget(root: propertyable, pred: Property, builder: propertyable => FlowPanel): Interconvertable =
+      Interconvertable(root, bagseqaltorres(pred), Seq(
+        Seq(nop, toBag(placeholders._2, pred), toAlt(placeholders._3, pred), seq2resource(pred)),
+        Seq(toSeq(placeholders._1, pred), nop, toAlt(placeholders._3, pred), bag2resource(pred)),
+        Seq(toSeq(placeholders._1, pred), toBag(placeholders._2, pred), nop, alt2resource(pred)),
+        Seq(seqm(pred), bagm(pred), altm(pred), nop)),
       Seq(("Seq",
-        z => ContEditor[JSeq](a, dcc, Unit => m.createSeq(), getOrMakeProp(z, dcc).as(classOf[JSeq]) orNull, e => vcard(e))),
+        z => ContEditor[JSeq](root, pred, Unit => m.createSeq(), getOrMakeProp(z, pred).as(classOf[JSeq]) orNull, e => builder(e))),
        ("Bag",
-        z => ContEditor[Bag](a, dcc, Unit => m.createBag(), getOrMakeProp(z, dcc).as(classOf[Bag]) orNull, e => vcard(e))),
+        z => ContEditor[Bag](root, pred, Unit => m.createBag(), getOrMakeProp(z, pred).as(classOf[Bag]) orNull, e => builder(e))),
        ("Alt",
-        z => ContEditor[Alt](a, dcc, Unit => m.createAlt(), getOrMakeProp(z, dcc).as(classOf[Alt]) orNull, e => vcard(e))),
+        z => ContEditor[Alt](root, pred, Unit => m.createAlt(), getOrMakeProp(z, pred).as(classOf[Alt]) orNull, e => builder(e))),
        ("Single",
-        z => vcard(getOrMakeProp(z, dcc)))
+        z => builder(getOrMakeProp(z, pred)))
       ))
+
+    val controls = CompoundEditor(aboutModel, Seq(      
+      a => containerwidget(a, dcc, vcard _)
     ))
     new FlowPanel(controls, Button("Save metadata to file") {
       def stripRDF(el: Node): Node = 
