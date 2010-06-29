@@ -127,7 +127,7 @@ object MetadataEditor extends SimpleSwingApplication {
     contents += inneredit
     listenTo(inneredit)
     reactions += {
-      case EditDone(inneredit) => set(inneredit.text)
+      case ValueChanged(inneredit: TextComponent) => set(inneredit.text)
     }
   }
   case class URIResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
