@@ -3,7 +3,6 @@ package org.cellml.metadata_editor
 import com.hp.hpl.jena.rdf.arp._
 import com.hp.hpl.jena.rdf.model.{Model, Alt, Bag, Seq => JSeq, Container => JContainer, RDFNode, ModelFactory, Property, Statement, Resource}
 
-import scala.swing._
 
 object JenaWrapper {
   trait stringable { def getString(): String }
@@ -17,7 +16,6 @@ object JenaWrapper {
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean
     def as[A <: RDFNode](clazz: Class[A]): Option[A]
   }
-  type thingable = Component with propertyable
   implicit def stmt2saferes(stmt: Statement): propertyable = {
     if (stmt.getObject().isLiteral())
       new litResWrapper(stmt.getObject())
