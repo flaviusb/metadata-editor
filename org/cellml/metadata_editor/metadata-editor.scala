@@ -18,7 +18,6 @@ object MetadataEditor extends SimpleSwingApplication {
   }
   object eph extends stringable {
     def getString(): String = ""
-    def getProperty(a: Property) = eph
   }
   case class ResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
     def get: String = ((for(s <- root.getProperty(predicate))
