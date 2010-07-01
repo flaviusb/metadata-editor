@@ -168,8 +168,6 @@ object MetadataEditor extends SimpleSwingApplication {
       root.removeAll(vcfn)
       var intermediate = m.createResource()
       root.addProperty(vcn, intermediate)
-      //val ss = str.split("""\s+""")
-      //val (first, last) = (ss(0), (1 to ss.length).toList :/ +)
       val fml = """([^ ]*) (.*) (.*)""".r
       val fl = """([^ ]*) (.*)""".r
       str match {
@@ -209,12 +207,6 @@ object MetadataEditor extends SimpleSwingApplication {
         root.addProperty(prop, m.createResource())
       root.getProperty(prop) orNull
     }
-    def container2resource(prop: Property)(root: propertyable): Unit = {
-      // In this case, we just take the first resource in the container; this becomes *the* resource.
-      val nv = getOrMakeProp(root, prop).as(classOf[JContainer]).iterator.next()
-      root.removeAll(prop)
-      root.addProperty(prop, nv)
-    }
     def seq2resource(prop: Property)(root: propertyable): Unit = {
       // In this case, we just take the first resource in the container; this becomes *the* resource.
       val f: Option[JSeq] = getOrMakeProp(root, prop).as(classOf[JSeq])
@@ -248,21 +240,17 @@ object MetadataEditor extends SimpleSwingApplication {
     }
     def seqm(prop: Property)(root: propertyable): Unit =  {
       var nv = getOrMakeProp(root, prop)
-      println("Seqm: " + nv.as(classOf[RDFNode]))
       root.removeAll(prop)
       var cont = m.createSeq()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
       cont.add(nv.as(classOf[RDFNode]) orNull)
-      println(cont.as(classOf[RDFNode]))
     }
     def altm(prop: Property)(root: propertyable): Unit =  {
       var nv = getOrMakeProp(root, prop)
-      //println("Altm: " + nv.as(classOf[RDFNode]))
       root.removeAll(prop)
       var cont: Alt = m.createAlt()
       cont.add(nv.as(classOf[RDFNode]) orNull)
       root.addProperty(prop, cont)
-      //println(cont.as(classOf[RDFNode]))
     }
     def bagm(prop: Property)(root: propertyable): Unit =  {
       var nv = getOrMakeProp(root, prop)
@@ -271,7 +259,6 @@ object MetadataEditor extends SimpleSwingApplication {
       var cont = m.createBag()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
       cont.add(nv.as(classOf[RDFNode]) orNull)
-      println(cont.as(classOf[RDFNode]))
     }
 
     //def altm = resource2container(Unit => m.createAlt()) _
