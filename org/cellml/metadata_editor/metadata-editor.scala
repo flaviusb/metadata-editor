@@ -69,7 +69,7 @@ object MetadataEditor extends SimpleSwingApplication {
     }
   }
   case class ContEditor[A <: JContainer](superroot: propertyable, superpred: Property, superbuilder: Unit => A,
-    var root: A, builder: propertyable => FlowPanel, bborder: Border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")) extends ColumnPanel {
+    var root: A, builder: propertyable => FlowPanel, border0: Border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")) extends ColumnPanel {
     def rebuild: Unit = {
       contents.clear()
       root.foreach(a => {
@@ -94,15 +94,15 @@ object MetadataEditor extends SimpleSwingApplication {
       }
     }
     rebuild
-    border = bborder
+    border = border0
   }
-  case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], bborder: Border = new EmptyBorder(0, 0, 0, 0)) extends FlowPanel {
+  case class CompoundEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], border0: Border = new EmptyBorder(0, 0, 0, 0)) extends FlowPanel {
     builder.foreach(a => contents += a(root))
-    border = bborder
+    border = border0
   }
-  case class CompoundColumnEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], bborder: Border = new EmptyBorder(0, 0, 0, 0)) extends ColumnPanel {
+  case class CompoundColumnEditor(root: propertyable, builder: Seq[propertyable => FlowPanel], border0: Border = new EmptyBorder(0, 0, 0, 0)) extends ColumnPanel {
     builder.foreach(a => contents += a(root))
-    border = bborder
+    border = border0
   }
   case class Interconvertable(root: propertyable, discriminator: propertyable => Int, converters: Seq[Seq[propertyable => Unit]], things: Seq[(String, (propertyable => FlowPanel))]) extends FlowPanel {
     val changemenu = new ListView(things.map(_._1))
@@ -328,8 +328,8 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))),
       CompoundEditor(_, Seq(
-        c => CompoundEditor(getOrMakeProp(c, vcemail), Seq(labeledtext("Email: ", rdfval), labeleduritext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Email details")),
-        c => CompoundEditor(getOrMakeProp(c, vctel), Seq(labeledtext("Number: ", rdfval), labeleduritext("Type: ", rdftype)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Telephone details"))
+        c => CompoundEditor(getOrMakeProp(c, vcemail), Seq(labeledtext("Email: ", rdfval), labeleduritext("Type: ", rdftype)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Email details")),
+        c => CompoundEditor(getOrMakeProp(c, vctel), Seq(labeledtext("Number: ", rdfval), labeleduritext("Type: ", rdftype)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Telephone details"))
         )),
       a => CompoundEditor(getOrMakeProp(a, vcorg), Seq(
         labeledtext("Org Name: ", vcorgn), labeledtext("Org Unit: ", vcorgu)))
@@ -353,8 +353,8 @@ object MetadataEditor extends SimpleSwingApplication {
       ))
 
     val controls = CompoundColumnEditor(aboutModel, Seq(      
-      a => CompoundEditor(a, Seq(b => containerwidget(b, dcc, vcard _)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Creator")),
-      a => CompoundEditor(a, Seq(b => containerwidget(b, dcco, vcard _)), bborder = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Contributors")),
+      a => CompoundEditor(a, Seq(b => containerwidget(b, dcc, vcard _)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Creator")),
+      a => CompoundEditor(a, Seq(b => containerwidget(b, dcco, vcard _)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Contributors")),
       labeledtext("Publisher: ", dcpub),
       labeledtext("Rights: ", dcrights),
       a => CompoundEditor(getOrMakeProp(a, dctcreated), Seq(labeledtext("Date created: ", dctdate))),
