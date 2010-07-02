@@ -4,6 +4,7 @@ import scala.swing._
 import javax.swing.BoxLayout
 import javax.swing.border._
 import scala.swing.event._
+import org.cellml.swing.ColumnPanel
 import scala.xml._
 import scala.xml.parsing.ConstructingParser
 import java.io._
@@ -382,9 +383,4 @@ object MetadataEditor extends SimpleSwingApplication {
         this.contents = editors(f.selectedFile);
     } 
   }
-}
-class ColumnPanel extends FlowPanel {
-  override lazy val peer: javax.swing.JPanel = 
-    new javax.swing.JPanel() with SuperMixin
-  peer.setLayout(new BoxLayout(peer, BoxLayout.Y_AXIS))
 }
