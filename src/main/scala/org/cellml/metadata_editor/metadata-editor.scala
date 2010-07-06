@@ -74,7 +74,7 @@ object MetadataEditor extends SimpleSwingApplication {
       root.foreach(a => {
         contents += new FlowPanel(builder(a.as(classOf[com.hp.hpl.jena.rdf.model.Resource])),
         Button(" - ") { 
-          // This is used because we can't remove RDFNodes from a JContainer due to Jena brokenness, so we have to regenerate the containers instead
+          // We can't remove RDFNodes from a JContainer due to Jena brokenness, so we have to regenerate the containers instead
           val transfer: Seq[RDFNode] = root
           superroot.removeAll(superpred)
           root = superbuilder()

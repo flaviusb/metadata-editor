@@ -1,3 +1,5 @@
+// This wrapper mitigates some of the brokenness of Jena's ontology
+
 package org.cellml.metadata_editor
 
 import com.hp.hpl.jena.rdf.arp._
