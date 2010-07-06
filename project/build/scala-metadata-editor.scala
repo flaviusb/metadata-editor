@@ -3,7 +3,7 @@ import Process._
 
 class ScalaMetadataEditorProject(info: ProjectInfo) extends DefaultProject(info)
 {
-  def extraResources = "LICENSE" +++ "COPYING" +++ "README"
+  def extraResources = "LICENSE" +++ "COPYING" +++ "README.md"
   override def mainResources = super.mainResources +++ extraResources
   
   val jena = "com.hp.hpl.jena" % "jena" % "2.6.2"
