@@ -1,4 +1,4 @@
-// This wrapper mitigates some of the brokenness of Jena's ontology
+// This wrapper mitigates some of the brokenness of the intersection of Jena's worldview, the reality of RDF, and Java's laughable type system.
 
 package org.cellml.metadata_editor
 
@@ -18,6 +18,8 @@ object JenaWrapper {
     def canAs[A <: RDFNode](clazz: Class[A]): Boolean
     def as[A <: RDFNode](clazz: Class[A]): Option[A]
   }
+  // Wrap both statements and resources into a uniform interface, which maps
+  // both Resources and Literals into a trait 'propertyable'.
   implicit def stmt2saferes(stmt: Statement): propertyable = {
     if (stmt.getObject().isLiteral())
       new litResWrapper(stmt.getObject())
@@ -77,6 +79,11 @@ object JenaWrapper {
     }
     def getString(): String = proxy.toString()
   }
+  // It makes more sense to access an RDF container using Scala's rich container
+  // stuff than using Jena's crippled interface. We implicitly convert where necessary; at
+  // this point the conversion is only useful for non-destructive operations, as
+  // we do not do any automatic alteration of the underlying RDF based on alteration to the
+  // implicitly generated object. 
   implicit def container2seq(thing: JContainer): Seq[RDFNode] = {
     var f: Seq[RDFNode] = Seq()
     var iter = thing.iterator

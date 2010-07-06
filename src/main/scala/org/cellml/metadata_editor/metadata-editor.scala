@@ -255,7 +255,7 @@ object MetadataEditor extends SimpleSwingApplication {
       nv.foreach(cont.add(_))
       root.addProperty(prop, cont)
     }
-    //val a: Seq[Property => propertyable => Unit] = Seq(Unit => m.createSeq, Unit => m.createBag, Unit => m.createAlt).map(container2container)
+    
     val placeholders = (asSeq _, asBag _, asAlt _)
     def toSeq = container2container(Unit => m.createSeq()) _
     def toBag = container2container(Unit => m.createBag()) _
@@ -271,6 +271,7 @@ object MetadataEditor extends SimpleSwingApplication {
       ret
     }
 
+    // This function discriminates between Bag, Seq, Alt, and Resource
     def bagseqaltorres(prop: Property)(root: propertyable): Int = {
       val r = getOrMakeProp(root, prop)
       //Manually unroll this to get around Jena's stupid type problems
