@@ -1,3 +1,5 @@
+// The Scala Metadata Editor is a proof-of-concept, used to learn more about development in Scala.
+
 package org.cellml.metadata_editor
 
 import scala.swing._
@@ -17,9 +19,12 @@ object MetadataEditor extends SimpleSwingApplication {
     contents += new Label(schema)
     contents += new TextField { text = value }
   }
-  object eph extends stringable {
-    def getString(): String = ""
+  // We create an object for use in resolving an Option[propertyable] to a stringable via orElse.
+  // This technique allows us to default to a given value, when we do want to perform an action over a None.
+  class defaultString(str: String) extends stringable {
+    def getString(): String = str
   }
+  val eph = new defaultString("")
   case class ResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
     def get: String = ((for(s <- root.getProperty(predicate))
                          yield {
