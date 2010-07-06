@@ -187,22 +187,21 @@ object MetadataEditor extends SimpleSwingApplication {
         root.addProperty(prop, m.createResource())
       root.getProperty(prop) orNull
     }
+    // The next three methods convert from a container to a resource. In each case, we take just the first
+    // resource in the container; this becomes *the* resource.
     def seq2resource(prop: Property)(root: propertyable): Unit = {
-      // In this case, we just take the first resource in the container; this becomes *the* resource.
       val f: Option[JSeq] = getOrMakeProp(root, prop).as(classOf[JSeq])
       val nv: RDFNode = f.orNull.iterator.next().as(classOf[RDFNode])
       root.removeAll(prop)
       root.addProperty(prop, nv)
     }
     def bag2resource(prop: Property)(root: propertyable): Unit = {
-      // In this case, we just take the first resource in the container; this becomes *the* resource.
       val f: Option[Bag] = getOrMakeProp(root, prop).as(classOf[Bag])
       val nv: RDFNode = f.orNull.iterator.next().as(classOf[RDFNode])
       root.removeAll(prop)
       root.addProperty(prop, nv)
     }
     def alt2resource(prop: Property)(root: propertyable): Unit = {
-      // In this case, we just take the first resource in the container; this becomes *the* resource.
       val f: Option[Alt] = getOrMakeProp(root, prop).as(classOf[Alt])
       val nv: RDFNode = f.orNull.iterator.next().as(classOf[RDFNode])
       root.removeAll(prop)
