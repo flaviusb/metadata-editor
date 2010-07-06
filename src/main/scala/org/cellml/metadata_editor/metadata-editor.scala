@@ -234,7 +234,6 @@ object MetadataEditor extends SimpleSwingApplication {
     }
     def bagm(prop: Property)(root: propertyable): Unit =  {
       var nv = getOrMakeProp(root, prop)
-      println("Bagm: " + nv.as(classOf[RDFNode]))
       root.removeAll(prop)
       var cont = m.createBag()
       root.addProperty(prop, cont.as(classOf[RDFNode]))
@@ -250,7 +249,6 @@ object MetadataEditor extends SimpleSwingApplication {
     def asAlt(root: propertyable) = root.as(classOf[Alt]) orNull
     def container2container(builder: Unit => JContainer)(from: propertyable => JContainer, prop: Property)(root: propertyable): Unit = {
       val te = getOrMakeProp(root, prop)
-      println(te.as(classOf[RDFNode]) getOrElse "")
       val nv: Seq[RDFNode] = from(te)
       root.removeAll(prop)
       val cont: JContainer = builder()
