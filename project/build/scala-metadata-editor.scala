@@ -20,8 +20,9 @@ class ScalaMetadataEditorProject(info: ProjectInfo) extends DefaultProject(info)
   lazy val literatedocs = task {
     val p = "src" / "main" / "scala" / "org" / "cellml" / "metadata_editor"
     val f = p * "*.scala"
-    def cmd(a: String): java.lang.ProcessBuilder = (new java.lang.ProcessBuilder("rocco", "-o", "../../../../../../docs", "-l", "scala", "-c", "//", a) directory p.asFile)
-    f.get.foreach(a => (cmd(a.asFile.getName()) !))
+    val files = f.get.map(_.asFile.getName())
+    val command = Seq("rocco", "-o", "../../../../../../docs", "-l", "scala", "-c", "//") ++ files.toSeq 
+    (new java.lang.ProcessBuilder(command : _*) directory p.asFile) ! ;
     None
   }
 }
