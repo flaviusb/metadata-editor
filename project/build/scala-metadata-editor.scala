@@ -3,6 +3,11 @@ import Process._
 
 class ScalaMetadataEditorProject(info: ProjectInfo) extends DefaultProject(info)
 {
+  def extraResources = "LICENSE" +++ "COPYING" +++ "README"
+  override def mainResources = super.mainResources +++ extraResources
+  
+  val jena = "com.hp.hpl.jena" % "jena" % "2.6.2"
+  val scalaSwing = "org.scala-lang" % "scala-swing" % "2.8.0.RC6"
   //override def shouldCheckOutputDirectories = false
   //override def updateAction = task { None }
 
