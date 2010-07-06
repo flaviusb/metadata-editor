@@ -8,6 +8,8 @@ class ScalaMetadataEditorProject(info: ProjectInfo) extends DefaultProject(info)
   
   val jena = "com.hp.hpl.jena" % "jena" % "2.6.2"
   val scalaSwing = "org.scala-lang" % "scala-swing" % "2.8.0.RC6"
+
+  override def packageOptions: Seq[PackageOption] = MainClass("org.cellml.metadata_editor.MetadataEditor") :: Nil
   //override def shouldCheckOutputDirectories = false
   //override def updateAction = task { None }
 
