@@ -45,14 +45,14 @@ object MetadataEditor extends SimpleSwingApplication {
                          }) getOrElse "")
     def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, root.getModel().orNull.createResource(value)) }
 
-    lazy val inneredit = new TextField(15) { text = get }
+    lazy val inneredit: TextComponent = new TextField(15) { text = get }
     contents += inneredit
     listenTo(inneredit)
     reactions += {
-      case ValueChanged(inneredit) => set(inneredit.text)
+      case ValueChanged(inneredit: TextComponent) => set(inneredit.text)
     }
   }
-  case class BigResourceEditor(root: propertyable, predicate: Property) extends URIResourceEditor(root, predicate) {
+  case class BigResourceEditor(override val root: propertyable, override val predicate: Property) extends URIResourceEditor(root, predicate) {
     override def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, value) }
 
     override lazy val inneredit = new TextArea(6, 95) { text = get }
