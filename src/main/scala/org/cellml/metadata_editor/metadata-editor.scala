@@ -34,22 +34,6 @@ object MetadataEditor extends SimpleSwingApplication {
                          }) getOrElse "")
     def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, value) }
 
-    var inneredit = new TextField(15) { text = get }
-    contents += inneredit
-    listenTo(inneredit)
-    reactions += {
-      case EditDone(inneredit) => set(inneredit.text)
-    }
-  }
-  case class URIResourceEditor(root: propertyable, predicate: Property) extends FlowPanel {
-    def get: String = ((for(s <- root.getProperty(predicate))
-                         yield {
-                           // This could be either a literal or an URI Resource
-                           if(s.isInstanceOf[safeResWrapper]) s.as(classOf[Resource]).orNull.getURI()
-                           else s.getString()
-                         }) getOrElse "")
-    def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, root.getModel().orNull.createResource(value)) }
-
     lazy val inneredit: TextComponent = new TextField(15) { text = get }
     contents += inneredit
     listenTo(inneredit)
@@ -57,15 +41,11 @@ object MetadataEditor extends SimpleSwingApplication {
       case ValueChanged(inneredit: TextComponent) => set(inneredit.text)
     }
   }
-  case class BigResourceEditor(override val root: propertyable, override val predicate: Property) extends URIResourceEditor(root, predicate) {
-    override def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, value) }
-
+  case class URIResourceEditor(override val root: propertyable, override val predicate: Property) extends ResourceEditor(root, predicate) {
+    override def set(value: String): Unit = if(showing) { root.removeAll(predicate); root.addProperty(predicate, root.getModel().orNull.createResource(value)) }
+  }
+  case class BigResourceEditor(override val root: propertyable, override val predicate: Property) extends ResourceEditor(root, predicate) {
     override lazy val inneredit = new TextArea(6, 95) { text = get }
-    contents += inneredit
-    listenTo(inneredit)
-    reactions += {
-      case ValueChanged(inneredit: TextComponent) => set(inneredit.text)
-    }
   }
   case class ContEditor[A <: JContainer](superroot: propertyable, superpred: Property, superbuilder: Unit => A,
     var root: A, builder: propertyable => FlowPanel, border0: Border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")) extends ColumnPanel {
