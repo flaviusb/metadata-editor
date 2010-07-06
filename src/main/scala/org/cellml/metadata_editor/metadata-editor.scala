@@ -239,9 +239,6 @@ object MetadataEditor extends SimpleSwingApplication {
       cont.add(nv.as(classOf[RDFNode]) orNull)
     }
 
-    //def altm = resource2container(Unit => m.createAlt()) _
-    //def bagm = resource2container(Unit => m.createBag()) _
-    //val (seqm, bagm, altm) = Seq((Unit) => m.createSeq(), (Unit) => m.createBag(), (Unit) => m.createAlt()).map(resource2container(_)_) 
     //Manually unroll this, as JVM type erasure means it can't be done with a type parameter
     def asSeq(root: propertyable) = root.as(classOf[JSeq]) orNull
     def asBag(root: propertyable) = root.as(classOf[Bag]) orNull
@@ -260,6 +257,10 @@ object MetadataEditor extends SimpleSwingApplication {
     def toBag = container2container(Unit => m.createBag()) _
     def toAlt = container2container(Unit => m.createAlt()) _
 
+    // Try to 'cast' a _propertyable_ to some type of _RDFNode_, and then call "meth" on it.
+    // Return true iff this works.
+    // This is useful as the guarding and checking methods in Jena do not work in practice, so we need
+    // to do something to determine what type of container an underlying node *really* is.
     def tryc[T <: RDFNode](r: propertyable, clazz: Class[T], meth: String): Boolean = {
       var ret = false
       try {
@@ -273,7 +274,7 @@ object MetadataEditor extends SimpleSwingApplication {
     // This function discriminates between Bag, Seq, Alt, and Resource
     def bagseqaltorres(prop: Property)(root: propertyable): Int = {
       val r = getOrMakeProp(root, prop)
-      //Manually unroll this to get around Jena's stupid type problems
+      //Manually unroll the type check to get around Jena's stupid type problems
       if (tryc(r, classOf[JSeq], "isSeq"))
         return 0
       else if (tryc(r, classOf[Bag], "isBag"))
