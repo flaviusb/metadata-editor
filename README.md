@@ -12,7 +12,7 @@ The jar can be invoked on the command line, as long as the Scala 2.8 jars, the J
 
     java org.cellml.metadata_editor.MetadataEditor
 
-[scala]: <http://scala-lang.org/> "Scala language"
-[jena]:  <http://jena.sourceforge.net/> "Jena RDF Framework"
-[sbt]:   <http://code.google.com/p/simple-build-tool/> "Simple build tool"
-[rocco]: <http://github.com/rtomayko/rocco> "Rocco documentation generator"
+[scala]: http://scala-lang.org/ "Scala language"
+[jena]:  http://jena.sourceforge.net/ "Jena RDF Framework"
+[sbt]:   http://code.google.com/p/simple-build-tool/ "Simple build tool"
+[rocco]: http://github.com/rtomayko/rocco "Rocco documentation generator"
