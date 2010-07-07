@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>metadata-editor.scala</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+        <a class="source" href="jena-wrapper.html">jena-wrapper.scala</a>
+        <a class="source" href="metadata-editor.html">metadata-editor.scala</a>
+        </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>metadata-editor.scala</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-1">#</a>
+        </div>
+        <p> The Scala Metadata Editor is a proof-of-concept, used to learn more about development in Scala.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">package</span> <span class="nn">org.cellml.metadata_editor</span>
+
+<span class="k">import</span> <span class="nn">scala.swing._</span>
+<span class="k">import</span> <span class="nn">javax.swing.BoxLayout</span>
+<span class="k">import</span> <span class="nn">javax.swing.border._</span>
+<span class="k">import</span> <span class="nn">scala.swing.event._</span>
+<span class="k">import</span> <span class="nn">org.cellml.swing.ColumnPanel</span>
+<span class="k">import</span> <span class="nn">scala.xml._</span>
+<span class="k">import</span> <span class="nn">scala.xml.parsing.ConstructingParser</span>
+<span class="k">import</span> <span class="nn">java.io._</span>
+<span class="k">import</span> <span class="nn">com.hp.hpl.jena.rdf.arp._</span>
+<span class="k">import</span> <span class="nn">com.hp.hpl.jena.rdf.model.</span><span class="o">{</span><span class="nc">Model</span><span class="o">,</span> <span class="nc">Alt</span><span class="o">,</span> <span class="nc">Bag</span><span class="o">,</span> <span class="nc">Seq</span> <span class="k">=&gt;</span> <span class="nc">JSeq</span><span class="o">,</span> <span class="nc">Container</span> <span class="k">=&gt;</span> <span class="nc">JContainer</span><span class="o">,</span> <span class="nc">RDFNode</span><span class="o">,</span> <span class="nc">ModelFactory</span><span class="o">,</span> <span class="nc">Property</span><span class="o">,</span> <span class="nc">Statement</span><span class="o">,</span> <span class="nc">Resource</span><span class="o">}</span>
+
+<span class="k">object</span> <span class="nc">MetadataEditor</span> <span class="k">extends</span> <span class="nc">SimpleSwingApplication</span> <span class="o">{</span>
+  <span class="k">import</span> <span class="nn">JenaWrapper._</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">editor</span><span class="o">(</span><span class="n">schema</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">value</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">FlowPanel</span> <span class="o">{</span>
+    <span class="n">contents</span> <span class="o">+=</span> <span class="k">new</span> <span class="nc">Label</span><span class="o">(</span><span class="n">schema</span><span class="o">)</span>
+    <span class="n">contents</span> <span class="o">+=</span> <span class="k">new</span> <span class="nc">TextField</span> <span class="o">{</span> <span class="n">text</span> <span class="k">=</span> <span class="n">value</span> <span class="o">}</span>
+  <span class="o">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-2">#</a>
+        </div>
+        <p> We create an object for use in resolving an Option[propertyable] to a stringable via orElse.
+ This technique allows us to default to a given value, when we do want to perform an action over a None.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>  <span class="k">class</span> <span class="nc">defaultString</span><span class="o">(</span><span class="n">str</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="n">stringable</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">getString</span><span class="o">()</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="n">str</span>
+  <span class="o">}</span>
+  <span class="k">val</span> <span class="n">eph</span> <span class="k">=</span> <span class="k">new</span> <span class="n">defaultString</span><span class="o">(</span><span class="s">&quot;&quot;</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">ResourceEditor</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">predicate</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">FlowPanel</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">get</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="o">((</span><span class="k">for</span><span class="o">(</span><span class="n">s</span> <span class="k">&lt;-</span> <span class="n">root</span><span class="o">.</span><span class="n">getProperty</span><span class="o">(</span><span class="n">predicate</span><span class="o">))</span>
+                         <span class="k">yield</span> <span class="o">{</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-3'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-3">#</a>
+        </div>
+        <p> This could be either a literal or an URI Resource</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>                           <span class="k">if</span><span class="o">(</span><span class="n">s</span><span class="o">.</span><span class="n">isInstanceOf</span><span class="o">[</span><span class="kt">safeResWrapper</span><span class="o">])</span> <span class="n">s</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Resource</span><span class="o">]).</span><span class="n">orNull</span><span class="o">.</span><span class="n">getURI</span><span class="o">()</span>
+                           <span class="k">else</span> <span class="n">s</span><span class="o">.</span><span class="n">getString</span><span class="o">()</span>
+                         <span class="o">})</span> <span class="n">getOrElse</span> <span class="s">&quot;&quot;</span><span class="o">)</span>
+    <span class="k">def</span> <span class="n">set</span><span class="o">(</span><span class="n">value</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="k">if</span><span class="o">(</span><span class="n">showing</span><span class="o">)</span> <span class="o">{</span> <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">predicate</span><span class="o">);</span> <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">predicate</span><span class="o">,</span> <span class="n">value</span><span class="o">)</span> <span class="o">}</span>
+
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">inneredit</span><span class="k">:</span> <span class="kt">TextComponent</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">TextField</span><span class="o">(</span><span class="mi">15</span><span class="o">)</span> <span class="o">{</span> <span class="n">text</span> <span class="k">=</span> <span class="n">get</span> <span class="o">}</span>
+    <span class="n">contents</span> <span class="o">+=</span> <span class="n">inneredit</span>
+    <span class="n">listenTo</span><span class="o">(</span><span class="n">inneredit</span><span class="o">)</span>
+    <span class="n">reactions</span> <span class="o">+=</span> <span class="o">{</span>
+      <span class="k">case</span> <span class="nc">ValueChanged</span><span class="o">(</span><span class="n">inneredit</span><span class="k">:</span> <span class="kt">TextComponent</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">set</span><span class="o">(</span><span class="n">inneredit</span><span class="o">.</span><span class="n">text</span><span class="o">)</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">URIResourceEditor</span><span class="o">(</span><span class="k">override</span> <span class="k">val</span> <span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="k">override</span> <span class="k">val</span> <span class="n">predicate</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">ResourceEditor</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">predicate</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">override</span> <span class="k">def</span> <span class="n">set</span><span class="o">(</span><span class="n">value</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="k">if</span><span class="o">(</span><span class="n">showing</span><span class="o">)</span> <span class="o">{</span> <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">predicate</span><span class="o">);</span> <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">predicate</span><span class="o">,</span> <span class="n">root</span><span class="o">.</span><span class="n">getModel</span><span class="o">().</span><span class="n">orNull</span><span class="o">.</span><span class="n">createResource</span><span class="o">(</span><span class="n">value</span><span class="o">))</span> <span class="o">}</span>
+  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">BigResourceEditor</span><span class="o">(</span><span class="k">override</span> <span class="k">val</span> <span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="k">override</span> <span class="k">val</span> <span class="n">predicate</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">ResourceEditor</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">predicate</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">override</span> <span class="k">lazy</span> <span class="k">val</span> <span class="n">inneredit</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">TextArea</span><span class="o">(</span><span class="mi">6</span><span class="o">,</span> <span class="mi">95</span><span class="o">)</span> <span class="o">{</span> <span class="n">text</span> <span class="k">=</span> <span class="n">get</span> <span class="o">}</span>
+  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">ContEditor</span><span class="o">[</span><span class="kt">A</span> <span class="k">&lt;:</span> <span class="kt">JContainer</span><span class="o">](</span><span class="n">superroot</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">superpred</span><span class="k">:</span> <span class="kt">Property</span><span class="o">,</span> <span class="n">superbuilder</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=&gt;</span> <span class="n">A</span><span class="o">,</span>
+    <span class="k">var</span> <span class="n">root</span><span class="k">:</span> <span class="kt">A</span><span class="o">,</span> <span class="n">builder</span><span class="k">:</span> <span class="kt">propertyable</span> <span class="o">=&gt;</span> <span class="nc">FlowPanel</span><span class="o">,</span> <span class="n">border0</span><span class="k">:</span> <span class="kt">Border</span> <span class="o">=</span> <span class="nc">Swing</span><span class="o">.</span><span class="nc">TitledBorder</span><span class="o">(</span><span class="nc">Swing</span><span class="o">.</span><span class="nc">LineBorder</span><span class="o">(</span><span class="k">new</span> <span class="nc">Color</span><span class="o">(</span><span class="mi">3010101</span><span class="o">).</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">),</span> <span class="s">&quot;Container&quot;</span><span class="o">))</span> <span class="k">extends</span> <span class="nc">ColumnPanel</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">rebuild</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="n">contents</span><span class="o">.</span><span class="n">clear</span><span class="o">()</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">foreach</span><span class="o">(</span><span class="n">a</span> <span class="k">=&gt;</span> <span class="o">{</span>
+        <span class="n">contents</span> <span class="o">+=</span> <span class="k">new</span> <span class="nc">FlowPanel</span><span class="o">(</span><span class="n">builder</span><span class="o">(</span><span class="n">a</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">com.hp.hpl.jena.rdf.model.Resource</span><span class="o">])),</span>
+        <span class="nc">Button</span><span class="o">(</span><span class="s">&quot; - &quot;</span><span class="o">)</span> <span class="o">{</span> </pre></div>
+      </td>
+    </tr>
+    <tr id='section-4'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-4">#</a>
+        </div>
+        <p> We can&rsquo;t remove RDFNodes from a JContainer due to Jena brokenness, so we have to regenerate the containers instead</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="k">val</span> <span class="n">transfer</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">]</span> <span class="k">=</span> <span class="n">root</span>
+          <span class="n">superroot</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">superpred</span><span class="o">)</span>
+          <span class="n">root</span> <span class="k">=</span> <span class="n">superbuilder</span><span class="o">()</span>
+          <span class="n">superroot</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">superpred</span><span class="o">,</span> <span class="n">root</span><span class="o">)</span>
+          <span class="n">transfer</span><span class="o">.</span><span class="n">foreach</span><span class="o">(</span><span class="n">b</span> <span class="k">=&gt;</span> <span class="k">if</span> <span class="o">(!</span><span class="n">b</span><span class="o">.</span><span class="n">equals</span><span class="o">(</span><span class="n">a</span><span class="o">))</span> <span class="n">root</span><span class="o">.</span><span class="n">add</span><span class="o">(</span><span class="n">b</span><span class="o">))</span>
+          <span class="n">rebuild</span>
+          <span class="n">revalidate</span>
+          <span class="n">repaint</span>
+        <span class="o">})</span>
+      <span class="o">})</span>
+      <span class="n">contents</span> <span class="o">+=</span> <span class="nc">Button</span><span class="o">(</span><span class="s">&quot; + &quot;</span><span class="o">)</span> <span class="o">{</span> 
+        <span class="n">root</span><span class="o">.</span><span class="n">add</span><span class="o">(</span><span class="n">root</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Resource</span><span class="o">]).</span><span class="n">getModel</span><span class="o">().</span><span class="n">createResource</span><span class="o">())</span>
+        <span class="n">rebuild</span>
+        <span class="n">revalidate</span>
+        <span class="n">repaint</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="n">rebuild</span>
+    <span class="n">border</span> <span class="k">=</span> <span class="n">border0</span>
+  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">builder</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">propertyable</span> <span class="k">=&gt;</span> <span class="kt">FlowPanel</span><span class="o">],</span> <span class="n">border0</span><span class="k">:</span> <span class="kt">Border</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">EmptyBorder</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">))</span> <span class="k">extends</span> <span class="nc">FlowPanel</span> <span class="o">{</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">foreach</span><span class="o">(</span><span class="n">a</span> <span class="k">=&gt;</span> <span class="n">contents</span> <span class="o">+=</span> <span class="n">a</span><span class="o">(</span><span class="n">root</span><span class="o">))</span>
+    <span class="n">border</span> <span class="k">=</span> <span class="n">border0</span>
+  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">CompoundColumnEditor</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">builder</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">propertyable</span> <span class="k">=&gt;</span> <span class="kt">FlowPanel</span><span class="o">],</span> <span class="n">border0</span><span class="k">:</span> <span class="kt">Border</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">EmptyBorder</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">))</span> <span class="k">extends</span> <span class="nc">ColumnPanel</span> <span class="o">{</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">foreach</span><span class="o">(</span><span class="n">a</span> <span class="k">=&gt;</span> <span class="n">contents</span> <span class="o">+=</span> <span class="n">a</span><span class="o">(</span><span class="n">root</span><span class="o">))</span>
+    <span class="n">border</span> <span class="k">=</span> <span class="n">border0</span>
+  <span class="o">}</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">Interconvertable</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">discriminator</span><span class="k">:</span> <span class="kt">propertyable</span> <span class="o">=&gt;</span> <span class="nc">Int</span><span class="o">,</span> <span class="n">converters</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">Seq</span><span class="o">[</span><span class="kt">propertyable</span> <span class="k">=&gt;</span> <span class="kt">Unit</span><span class="o">]],</span> <span class="n">things</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[(</span><span class="kt">String</span>, <span class="o">(</span><span class="kt">propertyable</span> <span class="k">=&gt;</span> <span class="kt">FlowPanel</span><span class="o">))])</span> <span class="k">extends</span> <span class="nc">FlowPanel</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">changemenu</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">ListView</span><span class="o">(</span><span class="n">things</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">_</span><span class="o">.</span><span class="n">_1</span><span class="o">))</span>
+    <span class="n">listenTo</span><span class="o">(</span><span class="n">changemenu</span><span class="o">.</span><span class="n">selection</span><span class="o">)</span>
+    <span class="n">reactions</span> <span class="o">+=</span> <span class="o">{</span>
+      <span class="k">case</span> <span class="nc">ListSelectionChanged</span><span class="o">(</span><span class="n">changemenu</span><span class="o">,</span> <span class="n">a</span><span class="o">,</span> <span class="n">_</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">{</span>
+        <span class="n">contents</span><span class="o">.</span><span class="n">clear</span><span class="o">()</span>
+        <span class="n">repaint</span>
+        <span class="n">converters</span><span class="o">(</span><span class="n">discriminator</span><span class="o">(</span><span class="n">root</span><span class="o">))(</span><span class="n">changemenu</span><span class="o">.</span><span class="n">selection</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">toSeq</span><span class="o">(</span><span class="mi">0</span><span class="o">))(</span><span class="n">root</span><span class="o">)</span>
+        <span class="n">refresh</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">refresh</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="n">contents</span><span class="o">.</span><span class="n">clear</span><span class="o">();</span>
+      <span class="k">val</span> <span class="n">item</span> <span class="k">=</span> <span class="n">discriminator</span><span class="o">(</span><span class="n">root</span><span class="o">)</span>
+      <span class="n">contents</span> <span class="o">+=</span> <span class="n">things</span><span class="o">(</span><span class="n">item</span><span class="o">).</span><span class="n">_2</span><span class="o">(</span><span class="n">root</span><span class="o">)</span>
+      <span class="n">contents</span> <span class="o">+=</span> <span class="n">changemenu</span>
+      <span class="n">deafTo</span><span class="o">(</span><span class="n">changemenu</span><span class="o">.</span><span class="n">selection</span><span class="o">)</span>
+      <span class="n">changemenu</span><span class="o">.</span><span class="n">selectIndices</span><span class="o">(</span><span class="n">item</span><span class="o">)</span>
+      <span class="n">listenTo</span><span class="o">(</span><span class="n">changemenu</span><span class="o">.</span><span class="n">selection</span><span class="o">)</span>
+      <span class="n">revalidate</span>
+      <span class="n">repaint</span>
+    <span class="o">}</span>
+    <span class="n">refresh</span>
+  <span class="o">}</span>
+  <span class="k">def</span> <span class="n">labeledtext</span><span class="o">(</span><span class="n">label</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">predicate</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">FlowPanel</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">new</span> <span class="nc">FlowPanel</span><span class="o">(</span><span class="k">new</span> <span class="nc">Label</span><span class="o">(</span><span class="n">label</span><span class="o">),</span> <span class="nc">ResourceEditor</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">predicate</span><span class="o">))</span>
+  <span class="o">}</span>
+  <span class="k">def</span> <span class="n">labeledbigtext</span><span class="o">(</span><span class="n">label</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">predicate</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">FlowPanel</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">new</span> <span class="nc">FlowPanel</span><span class="o">(</span><span class="k">new</span> <span class="nc">Label</span><span class="o">(</span><span class="n">label</span><span class="o">),</span> <span class="nc">BigResourceEditor</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">predicate</span><span class="o">))</span>
+  <span class="o">}</span>
+  <span class="k">def</span> <span class="n">labeleduritext</span><span class="o">(</span><span class="n">label</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">predicate</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">FlowPanel</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">new</span> <span class="nc">FlowPanel</span><span class="o">(</span><span class="k">new</span> <span class="nc">Label</span><span class="o">(</span><span class="n">label</span><span class="o">),</span> <span class="nc">URIResourceEditor</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">predicate</span><span class="o">))</span>
+  <span class="o">}</span>
+  <span class="k">def</span> <span class="n">editors</span><span class="o">(</span><span class="n">file</span><span class="k">:</span> <span class="kt">File</span><span class="o">)</span><span class="k">:</span> <span class="kt">Component</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">var</span> <span class="n">fis</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">FileInputStream</span><span class="o">(</span><span class="n">file</span><span class="o">)</span>
+    <span class="k">var</span> <span class="n">m</span> <span class="k">=</span> <span class="nc">ModelFactory</span><span class="o">.</span><span class="n">createDefaultModel</span><span class="o">()</span>
+    <span class="k">var</span> <span class="n">arp</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">getReader</span><span class="o">()</span>
+    <span class="n">arp</span><span class="o">.</span><span class="n">setProperty</span><span class="o">(</span><span class="s">&quot;embedding&quot;</span><span class="o">,</span> <span class="kc">true</span><span class="o">)</span>
+    <span class="k">var</span> <span class="n">cmetans</span> <span class="k">=</span> <span class="s">&quot;http://www.cellml.org/metadata/1.0&quot;</span>
+    <span class="n">arp</span><span class="o">.</span><span class="n">read</span><span class="o">(</span><span class="n">m</span><span class="o">,</span> <span class="n">fis</span><span class="o">,</span> <span class="s">&quot;&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">aboutModel</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">getResource</span><span class="o">(</span><span class="s">&quot;&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcn</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#N&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcfn</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#FN&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcg</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#Given&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcf</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#Family&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vco</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#Other&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcemail</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#EMAIL&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vctel</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#TEL&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcorg</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#ORG&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcorgn</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#Orgname&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">vcorgu</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/2001/vcard-rdf/3.0#Orgunit&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dcc</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://purl.org/dc/elements/1.1/creator&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dcco</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://purl.org/dc/elements/1.1/contributor&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dcpub</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://purl.org/dc/elements/1.1/publisher&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dcrights</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://purl.org/dc/elements/1.1/rights&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dctcreated</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://purl.org/dc/terms/created&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dctdate</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://purl.org/dc/terms/W3CDTF&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dctabstract</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://purl.org/dc/terms/abstract&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">rdfval</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#value&quot;</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">rdftype</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createProperty</span><span class="o">(</span><span class="s">&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&quot;</span><span class="o">)</span>
+    <span class="k">def</span> <span class="n">vcfn2vcp</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">var</span> <span class="n">str</span> <span class="k">=</span> <span class="o">(</span><span class="n">root</span><span class="o">.</span><span class="n">getProperty</span><span class="o">(</span><span class="n">vcfn</span><span class="o">)</span> <span class="n">getOrElse</span> <span class="n">eph</span><span class="o">).</span><span class="n">getString</span><span class="o">()</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">vcfn</span><span class="o">)</span>
+      <span class="k">var</span> <span class="n">intermediate</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createResource</span><span class="o">()</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcn</span><span class="o">,</span> <span class="n">intermediate</span><span class="o">)</span>
+      <span class="k">val</span> <span class="n">fml</span> <span class="k">=</span> <span class="s">&quot;&quot;&quot;([^ ]*) (.*) (.*)&quot;&quot;&quot;</span><span class="o">.</span><span class="n">r</span>
+      <span class="k">val</span> <span class="n">fl</span> <span class="k">=</span> <span class="s">&quot;&quot;&quot;([^ ]*) (.*)&quot;&quot;&quot;</span><span class="o">.</span><span class="n">r</span>
+      <span class="n">str</span> <span class="k">match</span> <span class="o">{</span>
+        <span class="k">case</span> <span class="n">fml</span><span class="o">(</span><span class="n">first</span><span class="o">,</span> <span class="n">other</span><span class="o">,</span> <span class="n">last</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">{</span>
+          <span class="n">intermediate</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcg</span><span class="o">,</span> <span class="n">first</span><span class="o">)</span>
+          <span class="n">intermediate</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vco</span><span class="o">,</span> <span class="n">other</span><span class="o">)</span>
+          <span class="n">intermediate</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcf</span><span class="o">,</span> <span class="n">last</span><span class="o">)</span>
+        <span class="o">}</span>
+        <span class="k">case</span> <span class="n">fl</span><span class="o">(</span><span class="n">first</span><span class="o">,</span> <span class="n">last</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">{</span>
+          <span class="n">intermediate</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcg</span><span class="o">,</span> <span class="n">first</span><span class="o">)</span>
+          <span class="n">intermediate</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcf</span><span class="o">,</span> <span class="n">last</span><span class="o">)</span>
+        <span class="o">}</span>
+        <span class="k">case</span> <span class="k">_</span> <span class="k">=&gt;</span> <span class="o">{</span>
+          <span class="n">intermediate</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcg</span><span class="o">,</span> <span class="n">str</span><span class="o">)</span>
+          <span class="n">intermediate</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcf</span><span class="o">,</span> <span class="s">&quot;&quot;</span><span class="o">)</span>
+        <span class="o">}</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">vcp2vcfn</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">var</span> <span class="n">str</span> <span class="k">=</span> <span class="o">(</span><span class="k">for</span> <span class="o">(</span><span class="n">r</span> <span class="k">&lt;-</span> <span class="n">root</span><span class="o">.</span><span class="n">getProperty</span><span class="o">(</span><span class="n">vcn</span><span class="o">))</span>
+        <span class="k">yield</span> <span class="o">{</span>
+          <span class="k">val</span> <span class="n">res</span> <span class="k">=</span> <span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">getProperty</span><span class="o">(</span><span class="n">vcg</span><span class="o">)</span> <span class="n">getOrElse</span> <span class="n">eph</span><span class="o">).</span><span class="n">getString</span><span class="o">()</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="o">+</span>
+          <span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">getProperty</span><span class="o">(</span><span class="n">vco</span><span class="o">)</span> <span class="n">getOrElse</span> <span class="n">eph</span><span class="o">).</span><span class="n">getString</span><span class="o">()</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="o">+</span>
+          <span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">getProperty</span><span class="o">(</span><span class="n">vcf</span><span class="o">)</span> <span class="n">getOrElse</span> <span class="n">eph</span><span class="o">).</span><span class="n">getString</span><span class="o">()</span>
+          <span class="nc">Seq</span><span class="o">(</span><span class="n">vcg</span><span class="o">,</span> <span class="n">vco</span><span class="o">,</span> <span class="n">vcf</span><span class="o">).</span><span class="n">map</span><span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">_</span><span class="o">))</span>
+          <span class="n">res</span>
+        <span class="o">})</span> <span class="n">getOrElse</span> <span class="s">&quot;&quot;</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">vcn</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">vcfn</span><span class="o">,</span> <span class="n">str</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">vcfnorn</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">if</span> <span class="o">(</span><span class="n">root</span><span class="o">.</span><span class="n">hasProperty</span><span class="o">(</span><span class="n">vcfn</span><span class="o">))</span> <span class="mi">1</span>
+      <span class="k">else</span> <span class="mi">0</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)</span><span class="k">:</span> <span class="kt">propertyable</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">if</span> <span class="o">(!</span><span class="n">root</span><span class="o">.</span><span class="n">hasProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">))</span>
+        <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">m</span><span class="o">.</span><span class="n">createResource</span><span class="o">())</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">getProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span> <span class="n">orNull</span>
+    <span class="o">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-5'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-5">#</a>
+        </div>
+        <p> The next three methods convert from a container to a resource. In each case, we take just the first
+ resource in the container; this becomes <em>the</em> resource.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="n">seq2resource</span><span class="o">(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">f</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">JSeq</span><span class="o">]</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">).</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">JSeq</span><span class="o">])</span>
+      <span class="k">val</span> <span class="n">nv</span><span class="k">:</span> <span class="kt">RDFNode</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">orNull</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">next</span><span class="o">().</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">])</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">nv</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">bag2resource</span><span class="o">(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">f</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">Bag</span><span class="o">]</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">).</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Bag</span><span class="o">])</span>
+      <span class="k">val</span> <span class="n">nv</span><span class="k">:</span> <span class="kt">RDFNode</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">orNull</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">next</span><span class="o">().</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">])</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">nv</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">alt2resource</span><span class="o">(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">f</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">Alt</span><span class="o">]</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">).</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Alt</span><span class="o">])</span>
+      <span class="k">val</span> <span class="n">nv</span><span class="k">:</span> <span class="kt">RDFNode</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">orNull</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">next</span><span class="o">().</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">])</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">nv</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">resource2container</span><span class="o">[</span><span class="kt">T</span> <span class="k">&lt;:</span> <span class="kt">JContainer</span><span class="o">](</span><span class="n">builder</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=&gt;</span> <span class="n">T</span><span class="o">)(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">nv</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">)</span>
+      <span class="n">println</span><span class="o">(</span><span class="n">nv</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">]))</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-6'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-6">#</a>
+        </div>
+        <p>root.removeAll(prop)</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="n">println</span><span class="o">(</span><span class="n">nv</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">]))</span>
+      <span class="k">val</span> <span class="n">cont</span><span class="k">:</span> <span class="kt">T</span> <span class="o">=</span> <span class="n">builder</span><span class="o">()</span>
+      <span class="n">cont</span><span class="o">.</span><span class="n">add</span><span class="o">(</span><span class="n">nv</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">cont</span><span class="o">)</span>
+      <span class="n">println</span><span class="o">(</span><span class="n">cont</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">]))</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">seqm</span><span class="o">(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span>  <span class="o">{</span>
+      <span class="k">var</span> <span class="n">nv</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span>
+      <span class="k">var</span> <span class="n">cont</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createSeq</span><span class="o">()</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">cont</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">]))</span>
+      <span class="n">cont</span><span class="o">.</span><span class="n">add</span><span class="o">(</span><span class="n">nv</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">])</span> <span class="n">orNull</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">altm</span><span class="o">(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span>  <span class="o">{</span>
+      <span class="k">var</span> <span class="n">nv</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span>
+      <span class="k">var</span> <span class="n">cont</span><span class="k">:</span> <span class="kt">Alt</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createAlt</span><span class="o">()</span>
+      <span class="n">cont</span><span class="o">.</span><span class="n">add</span><span class="o">(</span><span class="n">nv</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">])</span> <span class="n">orNull</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">cont</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">bagm</span><span class="o">(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span>  <span class="o">{</span>
+      <span class="k">var</span> <span class="n">nv</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span>
+      <span class="k">var</span> <span class="n">cont</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">createBag</span><span class="o">()</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">cont</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">]))</span>
+      <span class="n">cont</span><span class="o">.</span><span class="n">add</span><span class="o">(</span><span class="n">nv</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">])</span> <span class="n">orNull</span><span class="o">)</span>
+    <span class="o">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-7">#</a>
+        </div>
+        <p>Manually unroll this, as JVM type erasure means it can&rsquo;t be done with a type parameter</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="n">asSeq</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span> <span class="k">=</span> <span class="n">root</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">JSeq</span><span class="o">])</span> <span class="n">orNull</span>
+    <span class="k">def</span> <span class="n">asBag</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span> <span class="k">=</span> <span class="n">root</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Bag</span><span class="o">])</span> <span class="n">orNull</span>
+    <span class="k">def</span> <span class="n">asAlt</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span> <span class="k">=</span> <span class="n">root</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Alt</span><span class="o">])</span> <span class="n">orNull</span>
+    <span class="k">def</span> <span class="n">container2container</span><span class="o">(</span><span class="n">builder</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=&gt;</span> <span class="nc">JContainer</span><span class="o">)(</span><span class="n">from</span><span class="k">:</span> <span class="kt">propertyable</span> <span class="o">=&gt;</span> <span class="nc">JContainer</span><span class="o">,</span> <span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">te</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">)</span>
+      <span class="k">val</span> <span class="n">nv</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">RDFNode</span><span class="o">]</span> <span class="k">=</span> <span class="n">from</span><span class="o">(</span><span class="n">te</span><span class="o">)</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">removeAll</span><span class="o">(</span><span class="n">prop</span><span class="o">)</span>
+      <span class="k">val</span> <span class="n">cont</span><span class="k">:</span> <span class="kt">JContainer</span> <span class="o">=</span> <span class="n">builder</span><span class="o">()</span>
+      <span class="n">nv</span><span class="o">.</span><span class="n">foreach</span><span class="o">(</span><span class="n">cont</span><span class="o">.</span><span class="n">add</span><span class="o">(</span><span class="n">_</span><span class="o">))</span>
+      <span class="n">root</span><span class="o">.</span><span class="n">addProperty</span><span class="o">(</span><span class="n">prop</span><span class="o">,</span> <span class="n">cont</span><span class="o">)</span>
+    <span class="o">}</span>
+    
+    <span class="k">val</span> <span class="n">placeholders</span> <span class="k">=</span> <span class="o">(</span><span class="n">asSeq</span> <span class="n">_</span><span class="o">,</span> <span class="n">asBag</span> <span class="n">_</span><span class="o">,</span> <span class="n">asAlt</span> <span class="n">_</span><span class="o">)</span>
+    <span class="k">def</span> <span class="n">toSeq</span> <span class="k">=</span> <span class="n">container2container</span><span class="o">(</span><span class="nc">Unit</span> <span class="k">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">createSeq</span><span class="o">())</span> <span class="k">_</span>
+    <span class="k">def</span> <span class="n">toBag</span> <span class="k">=</span> <span class="n">container2container</span><span class="o">(</span><span class="nc">Unit</span> <span class="k">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">createBag</span><span class="o">())</span> <span class="k">_</span>
+    <span class="k">def</span> <span class="n">toAlt</span> <span class="k">=</span> <span class="n">container2container</span><span class="o">(</span><span class="nc">Unit</span> <span class="k">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">createAlt</span><span class="o">())</span> <span class="k">_</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-8">#</a>
+        </div>
+        <p> Try to &lsquo;cast&rsquo; a <em>propertyable</em> to some type of <em>RDFNode</em>, and then call &ldquo;meth&rdquo; on it.
+ Return true iff this works.
+ This is useful as the guarding and checking methods in Jena do not work in practice, so we need
+ to do something to determine what type of container an underlying node <em>really</em> is.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="n">tryc</span><span class="o">[</span><span class="kt">T</span> <span class="k">&lt;:</span> <span class="kt">RDFNode</span><span class="o">](</span><span class="n">r</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">clazz</span><span class="k">:</span> <span class="kt">Class</span><span class="o">[</span><span class="kt">T</span><span class="o">],</span> <span class="n">meth</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">var</span> <span class="n">ret</span> <span class="k">=</span> <span class="kc">false</span>
+      <span class="k">try</span> <span class="o">{</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">as</span><span class="o">(</span><span class="n">clazz</span><span class="o">).</span><span class="n">foreach</span><span class="o">((</span><span class="n">a</span><span class="k">:</span> <span class="kt">RDFNode</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="k">if</span> <span class="o">(</span><span class="n">clazz</span><span class="o">.</span><span class="n">getMethod</span><span class="o">(</span><span class="n">meth</span><span class="o">).</span><span class="n">invoke</span><span class="o">(</span><span class="n">a</span><span class="o">).</span><span class="n">asInstanceOf</span><span class="o">[</span><span class="kt">java.lang.Boolean</span><span class="o">].</span><span class="n">booleanValue</span><span class="o">)</span> <span class="n">ret</span> <span class="k">=</span> <span class="kc">true</span><span class="o">)</span>
+      <span class="o">}</span> <span class="k">catch</span> <span class="o">{</span>
+        <span class="k">case</span> <span class="k">_</span> <span class="k">=&gt;</span> <span class="o">{}</span>
+      <span class="o">}</span>
+      <span class="n">ret</span>
+    <span class="o">}</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-9">#</a>
+        </div>
+        <p> This function discriminates between Bag, Seq, Alt, and Resource</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="n">bagseqaltorres</span><span class="o">(</span><span class="n">prop</span><span class="k">:</span> <span class="kt">Property</span><span class="o">)(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">r</span> <span class="k">=</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">prop</span><span class="o">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-10'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-10">#</a>
+        </div>
+        <p>Manually unroll the type check to get around Jena&rsquo;s stupid type problems</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>      <span class="k">if</span> <span class="o">(</span><span class="n">tryc</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">classOf</span><span class="o">[</span><span class="kt">JSeq</span><span class="o">],</span> <span class="s">&quot;isSeq&quot;</span><span class="o">))</span>
+        <span class="k">return</span> <span class="mi">0</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tryc</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">classOf</span><span class="o">[</span><span class="kt">Bag</span><span class="o">],</span> <span class="s">&quot;isBag&quot;</span><span class="o">))</span>
+        <span class="k">return</span> <span class="mi">1</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">tryc</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">classOf</span><span class="o">[</span><span class="kt">Alt</span><span class="o">],</span> <span class="s">&quot;isAlt&quot;</span><span class="o">))</span>
+        <span class="k">return</span> <span class="mi">2</span>
+      <span class="k">return</span> <span class="mi">3</span>
+    <span class="o">}</span>
+    <span class="k">def</span> <span class="n">vcard</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span><span class="k">:</span> <span class="kt">FlowPanel</span> <span class="o">=</span> <span class="nc">CompoundColumnEditor</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span> 
+      <span class="n">a</span> <span class="k">=&gt;</span> <span class="nc">Interconvertable</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="n">vcfnorn</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span><span class="nc">Seq</span><span class="o">(</span><span class="n">nop</span> <span class="n">_</span><span class="o">,</span> <span class="n">vcp2vcfn</span> <span class="n">_</span><span class="o">),</span> <span class="nc">Seq</span><span class="o">(</span><span class="n">vcfn2vcp</span> <span class="n">_</span><span class="o">,</span> <span class="n">nop</span> <span class="n">_</span><span class="o">)),</span>
+          <span class="nc">Seq</span><span class="o">((</span><span class="s">&quot;vcard:N&quot;</span><span class="o">,</span>
+          <span class="n">b</span> <span class="k">=&gt;</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">b</span><span class="o">,</span> <span class="n">vcn</span><span class="o">),</span> <span class="nc">Seq</span><span class="o">(</span>
+            <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Given Name: &quot;</span><span class="o">,</span> <span class="n">vcg</span><span class="o">),</span> <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Other Name: &quot;</span><span class="o">,</span> <span class="n">vco</span><span class="o">),</span> <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Family Name: &quot;</span><span class="o">,</span> <span class="n">vcf</span><span class="o">)</span>
+          <span class="o">))),</span>
+          <span class="o">(</span><span class="s">&quot;vcard:FN&quot;</span><span class="o">,</span>
+            <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Full Name: &quot;</span><span class="o">,</span> <span class="n">vcfn</span><span class="o">)</span>
+          <span class="o">))),</span>
+      <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">_</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span>
+        <span class="n">c</span> <span class="k">=&gt;</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">c</span><span class="o">,</span> <span class="n">vcemail</span><span class="o">),</span> <span class="nc">Seq</span><span class="o">(</span><span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Email: &quot;</span><span class="o">,</span> <span class="n">rdfval</span><span class="o">),</span> <span class="n">labeleduritext</span><span class="o">(</span><span class="s">&quot;Type: &quot;</span><span class="o">,</span> <span class="n">rdftype</span><span class="o">)),</span> <span class="n">border0</span> <span class="k">=</span> <span class="nc">Swing</span><span class="o">.</span><span class="nc">TitledBorder</span><span class="o">(</span><span class="nc">Swing</span><span class="o">.</span><span class="nc">LineBorder</span><span class="o">(</span><span class="k">new</span> <span class="nc">Color</span><span class="o">(</span><span class="mi">3010101</span><span class="o">).</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">),</span> <span class="s">&quot;Email details&quot;</span><span class="o">)),</span>
+        <span class="n">c</span> <span class="k">=&gt;</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">c</span><span class="o">,</span> <span class="n">vctel</span><span class="o">),</span> <span class="nc">Seq</span><span class="o">(</span><span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Number: &quot;</span><span class="o">,</span> <span class="n">rdfval</span><span class="o">),</span> <span class="n">labeleduritext</span><span class="o">(</span><span class="s">&quot;Type: &quot;</span><span class="o">,</span> <span class="n">rdftype</span><span class="o">)),</span> <span class="n">border0</span> <span class="k">=</span> <span class="nc">Swing</span><span class="o">.</span><span class="nc">TitledBorder</span><span class="o">(</span><span class="nc">Swing</span><span class="o">.</span><span class="nc">LineBorder</span><span class="o">(</span><span class="k">new</span> <span class="nc">Color</span><span class="o">(</span><span class="mi">3010101</span><span class="o">).</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">),</span> <span class="s">&quot;Telephone details&quot;</span><span class="o">))</span>
+        <span class="o">)),</span>
+      <span class="n">a</span> <span class="k">=&gt;</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="n">vcorg</span><span class="o">),</span> <span class="nc">Seq</span><span class="o">(</span>
+        <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Org Name: &quot;</span><span class="o">,</span> <span class="n">vcorgn</span><span class="o">),</span> <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Org Unit: &quot;</span><span class="o">,</span> <span class="n">vcorgu</span><span class="o">)))</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+    <span class="k">def</span> <span class="n">nop</span><span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Unit</span>
+    <span class="k">def</span> <span class="n">containerwidget</span><span class="o">(</span><span class="n">root</span><span class="k">:</span> <span class="kt">propertyable</span><span class="o">,</span> <span class="n">pred</span><span class="k">:</span> <span class="kt">Property</span><span class="o">,</span> <span class="n">builder</span><span class="k">:</span> <span class="kt">propertyable</span> <span class="o">=&gt;</span> <span class="nc">FlowPanel</span><span class="o">)</span><span class="k">:</span> <span class="kt">Interconvertable</span> <span class="o">=</span>
+      <span class="nc">Interconvertable</span><span class="o">(</span><span class="n">root</span><span class="o">,</span> <span class="n">bagseqaltorres</span><span class="o">(</span><span class="n">pred</span><span class="o">),</span> <span class="nc">Seq</span><span class="o">(</span>
+        <span class="nc">Seq</span><span class="o">(</span><span class="n">nop</span><span class="o">,</span> <span class="n">toBag</span><span class="o">(</span><span class="n">placeholders</span><span class="o">.</span><span class="n">_2</span><span class="o">,</span> <span class="n">pred</span><span class="o">),</span> <span class="n">toAlt</span><span class="o">(</span><span class="n">placeholders</span><span class="o">.</span><span class="n">_3</span><span class="o">,</span> <span class="n">pred</span><span class="o">),</span> <span class="n">seq2resource</span><span class="o">(</span><span class="n">pred</span><span class="o">)),</span>
+        <span class="nc">Seq</span><span class="o">(</span><span class="n">toSeq</span><span class="o">(</span><span class="n">placeholders</span><span class="o">.</span><span class="n">_1</span><span class="o">,</span> <span class="n">pred</span><span class="o">),</span> <span class="n">nop</span><span class="o">,</span> <span class="n">toAlt</span><span class="o">(</span><span class="n">placeholders</span><span class="o">.</span><span class="n">_3</span><span class="o">,</span> <span class="n">pred</span><span class="o">),</span> <span class="n">bag2resource</span><span class="o">(</span><span class="n">pred</span><span class="o">)),</span>
+        <span class="nc">Seq</span><span class="o">(</span><span class="n">toSeq</span><span class="o">(</span><span class="n">placeholders</span><span class="o">.</span><span class="n">_1</span><span class="o">,</span> <span class="n">pred</span><span class="o">),</span> <span class="n">toBag</span><span class="o">(</span><span class="n">placeholders</span><span class="o">.</span><span class="n">_2</span><span class="o">,</span> <span class="n">pred</span><span class="o">),</span> <span class="n">nop</span><span class="o">,</span> <span class="n">alt2resource</span><span class="o">(</span><span class="n">pred</span><span class="o">)),</span>
+        <span class="nc">Seq</span><span class="o">(</span><span class="n">seqm</span><span class="o">(</span><span class="n">pred</span><span class="o">),</span> <span class="n">bagm</span><span class="o">(</span><span class="n">pred</span><span class="o">),</span> <span class="n">altm</span><span class="o">(</span><span class="n">pred</span><span class="o">),</span> <span class="n">nop</span><span class="o">)),</span>
+      <span class="nc">Seq</span><span class="o">((</span><span class="s">&quot;Seq&quot;</span><span class="o">,</span>
+        <span class="n">z</span> <span class="k">=&gt;</span> <span class="nc">ContEditor</span><span class="o">[</span><span class="kt">JSeq</span><span class="o">](</span><span class="n">root</span><span class="o">,</span> <span class="n">pred</span><span class="o">,</span> <span class="nc">Unit</span> <span class="k">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">createSeq</span><span class="o">(),</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">z</span><span class="o">,</span> <span class="n">pred</span><span class="o">).</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">JSeq</span><span class="o">])</span> <span class="n">orNull</span><span class="o">,</span> <span class="n">e</span> <span class="k">=&gt;</span> <span class="n">builder</span><span class="o">(</span><span class="n">e</span><span class="o">))),</span>
+       <span class="o">(</span><span class="s">&quot;Bag&quot;</span><span class="o">,</span>
+        <span class="n">z</span> <span class="k">=&gt;</span> <span class="nc">ContEditor</span><span class="o">[</span><span class="kt">Bag</span><span class="o">](</span><span class="n">root</span><span class="o">,</span> <span class="n">pred</span><span class="o">,</span> <span class="nc">Unit</span> <span class="k">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">createBag</span><span class="o">(),</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">z</span><span class="o">,</span> <span class="n">pred</span><span class="o">).</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Bag</span><span class="o">])</span> <span class="n">orNull</span><span class="o">,</span> <span class="n">e</span> <span class="k">=&gt;</span> <span class="n">builder</span><span class="o">(</span><span class="n">e</span><span class="o">))),</span>
+       <span class="o">(</span><span class="s">&quot;Alt&quot;</span><span class="o">,</span>
+        <span class="n">z</span> <span class="k">=&gt;</span> <span class="nc">ContEditor</span><span class="o">[</span><span class="kt">Alt</span><span class="o">](</span><span class="n">root</span><span class="o">,</span> <span class="n">pred</span><span class="o">,</span> <span class="nc">Unit</span> <span class="k">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">createAlt</span><span class="o">(),</span> <span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">z</span><span class="o">,</span> <span class="n">pred</span><span class="o">).</span><span class="n">as</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">Alt</span><span class="o">])</span> <span class="n">orNull</span><span class="o">,</span> <span class="n">e</span> <span class="k">=&gt;</span> <span class="n">builder</span><span class="o">(</span><span class="n">e</span><span class="o">))),</span>
+       <span class="o">(</span><span class="s">&quot;Single&quot;</span><span class="o">,</span>
+        <span class="n">z</span> <span class="k">=&gt;</span> <span class="n">builder</span><span class="o">(</span><span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">z</span><span class="o">,</span> <span class="n">pred</span><span class="o">)))</span>
+      <span class="o">))</span>
+
+    <span class="k">val</span> <span class="n">controls</span> <span class="k">=</span> <span class="nc">CompoundColumnEditor</span><span class="o">(</span><span class="n">aboutModel</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span>      
+      <span class="n">a</span> <span class="k">=&gt;</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span><span class="n">b</span> <span class="k">=&gt;</span> <span class="n">containerwidget</span><span class="o">(</span><span class="n">b</span><span class="o">,</span> <span class="n">dcc</span><span class="o">,</span> <span class="n">vcard</span> <span class="n">_</span><span class="o">)),</span> <span class="n">border0</span> <span class="k">=</span> <span class="nc">Swing</span><span class="o">.</span><span class="nc">TitledBorder</span><span class="o">(</span><span class="nc">Swing</span><span class="o">.</span><span class="nc">LineBorder</span><span class="o">(</span><span class="k">new</span> <span class="nc">Color</span><span class="o">(</span><span class="mi">3010101</span><span class="o">).</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">),</span> <span class="s">&quot;Creator&quot;</span><span class="o">)),</span>
+      <span class="n">a</span> <span class="k">=&gt;</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span><span class="n">b</span> <span class="k">=&gt;</span> <span class="n">containerwidget</span><span class="o">(</span><span class="n">b</span><span class="o">,</span> <span class="n">dcco</span><span class="o">,</span> <span class="n">vcard</span> <span class="n">_</span><span class="o">)),</span> <span class="n">border0</span> <span class="k">=</span> <span class="nc">Swing</span><span class="o">.</span><span class="nc">TitledBorder</span><span class="o">(</span><span class="nc">Swing</span><span class="o">.</span><span class="nc">LineBorder</span><span class="o">(</span><span class="k">new</span> <span class="nc">Color</span><span class="o">(</span><span class="mi">3010101</span><span class="o">).</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">.</span><span class="n">darker</span><span class="o">),</span> <span class="s">&quot;Contributors&quot;</span><span class="o">)),</span>
+      <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Publisher: &quot;</span><span class="o">,</span> <span class="n">dcpub</span><span class="o">),</span>
+      <span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Rights: &quot;</span><span class="o">,</span> <span class="n">dcrights</span><span class="o">),</span>
+      <span class="n">a</span> <span class="k">=&gt;</span> <span class="nc">CompoundEditor</span><span class="o">(</span><span class="n">getOrMakeProp</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="n">dctcreated</span><span class="o">),</span> <span class="nc">Seq</span><span class="o">(</span><span class="n">labeledtext</span><span class="o">(</span><span class="s">&quot;Date created: &quot;</span><span class="o">,</span> <span class="n">dctdate</span><span class="o">))),</span>
+      <span class="n">labeledbigtext</span><span class="o">(</span><span class="s">&quot;Abstract: &quot;</span><span class="o">,</span> <span class="n">dctabstract</span><span class="o">)</span>
+    <span class="o">))</span>
+    <span class="k">new</span> <span class="nc">ScrollPane</span><span class="o">(</span><span class="k">new</span> <span class="nc">FlowPanel</span><span class="o">(</span><span class="n">controls</span><span class="o">,</span> <span class="nc">Button</span><span class="o">(</span><span class="s">&quot;Save metadata to file&quot;</span><span class="o">)</span> <span class="o">{</span>
+      <span class="k">def</span> <span class="n">stripRDF</span><span class="o">(</span><span class="n">el</span><span class="k">:</span> <span class="kt">Node</span><span class="o">)</span><span class="k">:</span> <span class="kt">Node</span> <span class="o">=</span> 
+        <span class="n">el</span> <span class="k">match</span> <span class="o">{</span>
+          <span class="k">case</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Text</span> <span class="o">=&gt;</span> <span class="o">(</span><span class="n">b</span><span class="o">)</span>
+          <span class="k">case</span> <span class="o">&lt;</span><span class="n">rdf</span><span class="o">&gt;{</span><span class="n">inner</span> <span class="k">@</span> <span class="n">_*</span><span class="o">}&lt;/</span><span class="n">rdf</span><span class="o">&gt;</span> <span class="k">=&gt;</span> <span class="k">new</span> <span class="nc">Text</span><span class="o">(</span><span class="s">&quot;&quot;</span><span class="o">)</span>
+          <span class="k">case</span> <span class="o">&lt;</span><span class="nc">RDF</span><span class="o">&gt;{</span><span class="n">inner</span> <span class="k">@</span> <span class="n">_*</span><span class="o">}&lt;/</span><span class="nc">RDF</span><span class="o">&gt;</span> <span class="k">=&gt;</span> <span class="k">new</span> <span class="nc">Text</span><span class="o">(</span><span class="s">&quot;&quot;</span><span class="o">)</span>
+          <span class="k">case</span> <span class="n">a</span><span class="k">:</span> <span class="kt">Elem</span> <span class="o">=&gt;</span> <span class="o">(</span><span class="k">new</span> <span class="nc">Elem</span><span class="o">(</span><span class="n">a</span><span class="o">.</span><span class="n">prefix</span><span class="o">,</span> <span class="n">a</span><span class="o">.</span><span class="n">label</span><span class="o">,</span> <span class="n">a</span><span class="o">.</span><span class="n">attributes</span><span class="o">,</span> <span class="n">a</span><span class="o">.</span><span class="n">scope</span><span class="o">,</span> <span class="n">a</span><span class="o">.</span><span class="n">child</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">stripRDF</span><span class="o">)</span> <span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">))</span>
+          <span class="k">case</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Node</span> <span class="o">=&gt;</span> <span class="o">(</span><span class="n">b</span><span class="o">)</span>
+        <span class="o">}</span>
+      <span class="k">val</span> <span class="n">p</span> <span class="k">=</span> <span class="nc">ConstructingParser</span><span class="o">.</span><span class="n">fromFile</span><span class="o">(</span><span class="n">file</span><span class="o">,</span> <span class="kc">true</span><span class="o">)</span>
+      <span class="k">var</span> <span class="n">d</span><span class="k">:</span> <span class="kt">Node</span> <span class="o">=</span> <span class="n">stripRDF</span><span class="o">(</span><span class="n">p</span><span class="o">.</span><span class="n">document</span><span class="o">.</span><span class="n">docElem</span><span class="o">)</span>
+      
+      <span class="k">var</span> <span class="n">arw</span> <span class="k">=</span> <span class="n">m</span><span class="o">.</span><span class="n">getWriter</span><span class="o">(</span><span class="s">&quot;RDF/XML-ABBREV&quot;</span><span class="o">)</span>
+      <span class="n">arw</span><span class="o">.</span><span class="n">setProperty</span><span class="o">(</span><span class="s">&quot;relativeURIs&quot;</span><span class="o">,</span> <span class="s">&quot;same-document, absolute, relative, parent&quot;</span><span class="o">)</span>
+      <span class="n">arw</span><span class="o">.</span><span class="n">setProperty</span><span class="o">(</span><span class="s">&quot;allowBadURIs&quot;</span><span class="o">,</span> <span class="s">&quot;true&quot;</span><span class="o">)</span>
+      <span class="k">var</span> <span class="n">capture</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">StringWriter</span><span class="o">()</span>
+      <span class="n">capture</span><span class="o">.</span><span class="n">write</span><span class="o">(</span><span class="s">&quot;&lt;fakeroot&gt;&quot;</span><span class="o">);</span>
+      <span class="n">arw</span><span class="o">.</span><span class="n">write</span><span class="o">(</span><span class="n">m</span><span class="o">,</span> <span class="n">capture</span><span class="o">,</span> <span class="s">&quot;&quot;</span><span class="o">)</span>
+      <span class="n">capture</span><span class="o">.</span><span class="n">write</span><span class="o">(</span><span class="s">&quot;&lt;/fakeroot&gt;&quot;</span><span class="o">)</span>
+      <span class="k">var</span> <span class="n">xm</span> <span class="k">=</span> <span class="nc">XML</span><span class="o">.</span><span class="n">loadString</span><span class="o">(</span><span class="n">capture</span><span class="o">.</span><span class="n">toString</span><span class="o">())</span>
+      <span class="k">val</span> <span class="n">finaldoc</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Elem</span><span class="o">(</span><span class="n">d</span><span class="o">.</span><span class="n">prefix</span><span class="o">,</span> <span class="n">d</span><span class="o">.</span><span class="n">label</span><span class="o">,</span> <span class="n">d</span><span class="o">.</span><span class="n">attributes</span><span class="o">,</span> <span class="n">d</span><span class="o">.</span><span class="n">scope</span><span class="o">,</span> <span class="o">(</span><span class="n">d</span><span class="o">.</span><span class="n">child</span> <span class="o">++</span> <span class="n">xm</span><span class="o">.</span><span class="n">child</span><span class="o">)</span><span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">)</span> 
+      <span class="k">val</span> <span class="n">fo</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">FileChooser</span><span class="o">()</span>
+      <span class="n">fo</span><span class="o">.</span><span class="n">showSaveDialog</span><span class="o">(</span><span class="n">controls</span><span class="o">)</span>
+      <span class="k">if</span> <span class="o">(</span><span class="n">fo</span><span class="o">.</span><span class="n">selectedFile</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> 
+        <span class="nc">XML</span><span class="o">.</span><span class="n">save</span><span class="o">(</span><span class="n">fo</span><span class="o">.</span><span class="n">selectedFile</span><span class="o">.</span><span class="n">toString</span><span class="o">(),</span> <span class="n">finaldoc</span><span class="o">);</span>
+    <span class="o">}))</span>
+  <span class="o">}</span>
+  <span class="k">def</span> <span class="n">top</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">MainFrame</span> <span class="o">{</span>
+    <span class="n">title</span> <span class="k">=</span> <span class="s">&quot;Metadata Editor&quot;</span>
+    <span class="n">contents</span> <span class="k">=</span> <span class="nc">Button</span><span class="o">(</span><span class="s">&quot;Open CellML model&quot;</span><span class="o">)</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">FileChooser</span><span class="o">()</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">showOpenDialog</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="n">contents</span><span class="o">(</span><span class="mi">0</span><span class="o">))</span>
+      <span class="k">if</span> <span class="o">(</span><span class="n">f</span><span class="o">.</span><span class="n">selectedFile</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span>
+        <span class="k">this</span><span class="o">.</span><span class="n">contents</span> <span class="k">=</span> <span class="n">editors</span><span class="o">(</span><span class="n">f</span><span class="o">.</span><span class="n">selectedFile</span><span class="o">);</span>
+    <span class="o">}</span> 
+  <span class="o">}</span>
+<span class="o">}</span></pre></div>
+      </td>
+    </tr>
+    </table>
+</div>
+</body>
