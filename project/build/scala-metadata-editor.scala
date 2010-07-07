@@ -54,10 +54,13 @@ class ScalaMetadataEditorProject(info: ProjectInfo) extends DefaultProject(info)
       val tmprep = new File(tmp, repoDir)
       (new PB("git", "checkout", "-f", "gh-pages") directory tmprep) ! ;
       (new PB("rm", "-rf", "*") directory tmprep) ! ;
-      val docs: PathFinder = "docs" ** "*.html"
-      docs.get.foreach(a => a.asFile #> new File(tmprep, a.asFile.getName()))
-      ("docs" / mainDoc).asFile #> new File(tmprep, "index.html")
-      (new PB("git", "add", "-A") directory tmprep) ! ;
+      val docs: PathFinder = path("docs") * "*.html"
+      docs.get.foreach(a => { 
+        println("Copying: " + a.toString + " to " + new File(tmprep, a.asFile.getName()))
+        a.asFile #> new File(tmprep, a.asFile.getName()) !
+      })
+      ("docs" / mainDoc).asFile #> new File(tmprep, "index.html") ! ;
+      (new PB("git", "add", "--all", ".") directory tmprep) ! ;
       (new PB("git", "commit", "-a", "-m", "Automatically generated commit from sbt update_gh_pages.") directory tmprep) ! ;
       (new PB("git", "push", "origin", "gh-pages") directory tmprep) ! ;
       Left("Done")
