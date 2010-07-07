@@ -210,7 +210,7 @@ object MetadataEditor extends SimpleSwingApplication {
     def resource2container[T <: JContainer](builder: Unit => T)(prop: Property)(root: propertyable): Unit = {
       val nv = getOrMakeProp(root, prop)
       println(nv.as(classOf[RDFNode]))
-      //root.removeAll(prop)
+      root.removeAll(prop)
       println(nv.as(classOf[RDFNode]))
       val cont: T = builder()
       cont.add(nv)
