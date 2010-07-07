@@ -352,6 +352,8 @@ object MetadataEditor extends SimpleSwingApplication {
         XML.save(fo.selectedFile.toString(), finaldoc);
     }))
   }
+  // Here we have the meat of the singleton gui object; a button which replaces itelf with the actual gui.
+  // This whole thing should be pulled apart.
   def top = new MainFrame {
     title = "Metadata Editor"
     contents = Button("Open CellML model") {
