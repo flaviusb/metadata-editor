@@ -48,7 +48,7 @@ object MetadataEditor extends SimpleSwingApplication {
     override lazy val inneredit = new TextArea(6, 95) { text = get }
   }
   case class ContEditor[A <: JContainer](superroot: propertyable, superpred: Property, superbuilder: Unit => A,
-    var root: A, builder: propertyable => FlowPanel, border0: Border = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Container")) extends ColumnPanel {
+    var root: A, builder: propertyable => FlowPanel, border0: Border = Swing.TitledBorder(Swing.LineBorder(new Color(0x010101)), "Container")) extends ColumnPanel {
     def rebuild: Unit = {
       contents.clear()
       root.foreach(a => {
@@ -293,8 +293,8 @@ object MetadataEditor extends SimpleSwingApplication {
             labeledtext("Full Name: ", vcfn)
           ))),
       CompoundEditor(_, Seq(
-        c => CompoundEditor(getOrMakeProp(c, vcemail), Seq(labeledtext("Email: ", rdfval), labeleduritext("Type: ", rdftype)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Email details")),
-        c => CompoundEditor(getOrMakeProp(c, vctel), Seq(labeledtext("Number: ", rdfval), labeleduritext("Type: ", rdftype)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Telephone details"))
+        c => CompoundEditor(getOrMakeProp(c, vcemail), Seq(labeledtext("Email: ", rdfval), labeleduritext("Type: ", rdftype)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(0x010101)), "Email details")),
+        c => CompoundEditor(getOrMakeProp(c, vctel), Seq(labeledtext("Number: ", rdfval), labeleduritext("Type: ", rdftype)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(0x010101)), "Telephone details"))
         )),
       a => CompoundEditor(getOrMakeProp(a, vcorg), Seq(
         labeledtext("Org Name: ", vcorgn), labeledtext("Org Unit: ", vcorgu)))
@@ -318,8 +318,8 @@ object MetadataEditor extends SimpleSwingApplication {
       ))
 
     val controls = CompoundColumnEditor(aboutModel, Seq(      
-      a => CompoundEditor(a, Seq(b => containerwidget(b, dcc, vcard _)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Creator")),
-      a => CompoundEditor(a, Seq(b => containerwidget(b, dcco, vcard _)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(3010101).darker.darker.darker), "Contributors")),
+      a => CompoundEditor(a, Seq(b => containerwidget(b, dcc, vcard _)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(0x010101)), "Creator")),
+      a => CompoundEditor(a, Seq(b => containerwidget(b, dcco, vcard _)), border0 = Swing.TitledBorder(Swing.LineBorder(new Color(0x010101)), "Contributors")),
       labeledtext("Publisher: ", dcpub),
       labeledtext("Rights: ", dcrights),
       a => CompoundEditor(getOrMakeProp(a, dctcreated), Seq(labeledtext("Date created: ", dctdate))),
